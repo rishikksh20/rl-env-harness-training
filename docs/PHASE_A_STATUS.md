@@ -2,6 +2,8 @@
 
 Stage A delivers a working Python package managed by `uv`, with no model download or training stack. The next milestone is Stage B real Transformers CPU rollout. This status record distinguishes executed checks from future design gates.
 
+This is the original implementation acceptance record. The [follow-up Phase 1 evaluation](PHASE_1_EVALUATION.md) reran the suite and identified a cleanup/cache failure path not covered by those tests. Its fix is planned as the first Phase 2 prerequisite.
+
 ## What exists
 
 The core keeps one private repository per episode, exposes four bounded tools, freezes actual source bytes, reconstructs an independent candidate, verifies real executable behavior, records one completed binary reward, and removes its resources. Resetting creates a fresh episode ID and reproduces the immutable starter hash.

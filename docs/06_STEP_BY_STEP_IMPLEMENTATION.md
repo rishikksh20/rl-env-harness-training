@@ -63,6 +63,8 @@ Completion evidence: readable actual transcript saved for the future setup READM
 
 ## 3. Stage B: real model rollout and evaluation
 
+The detailed next-phase flow and file-level checklist now live in [PHASE_2_MODEL_ROLLOUT_DESIGN.md](PHASE_2_MODEL_ROLLOUT_DESIGN.md). Begin with its B0 prerequisite milestone from [the Phase 1 evaluation](PHASE_1_EVALUATION.md).
+
 ### B1. Resolve and record a CPU-compatible model stack
 
 Preserve `Qwen/Qwen3.5-0.8B` as the target. Inspect the current official text-only loading route, supported architecture class, tokenizer/template, and CPU fallback. Test generation and tool parsing before running a full task. Pin a working CPU profile with model revision and hardware metadata. The older plain-attention small fallback described in the training document may validate infrastructure when the target gate is unresolved; report which model actually ran.

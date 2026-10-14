@@ -2,12 +2,16 @@
 
 These documents turn [the build specification](../CODEX_AGENTIC_RL_ENV_SPEC.md) into a small, staged Python implementation plan. **Stage A is now implemented**: see [the run guide](../README.md) and [Stage A implementation status](PHASE_A_STATUS.md). The original architecture drafts explain the design; model inference and training remain future stages.
 
+The latest follow-up is [the Phase 1 evaluation](PHASE_1_EVALUATION.md) and [the focused Phase 2 rollout design](PHASE_2_MODEL_ROLLOUT_DESIGN.md). The review confirmed a cleanup/cache edge case to fix before real model rollouts; the design pass changed documentation only.
+
 The central idea is simple: a model uses tools to change a private copy of a tiny repository; independent executable tests judge the final changes; TRL uses rewards from several attempts at the same task to update the model.
 
 ## Read in this order
 
 | Document | Question it answers |
 |---|---|
+| [PHASE_1_EVALUATION.md](PHASE_1_EVALUATION.md) | What did the current code and rerun tests establish, and what needs attention before a model is added? |
+| [PHASE_2_MODEL_ROLLOUT_DESIGN.md](PHASE_2_MODEL_ROLLOUT_DESIGN.md) | What is the concrete CPU model flow, dependency plan, protocol, and ordered coding checklist? |
 | [PHASE_A_STATUS.md](PHASE_A_STATUS.md) | What works today, which commands were tested, and what changed from the draft? |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | What is the environment, what changes during an episode, and how does learning connect to it? |
 | [ENVIRONMENT_SUPPORT.md](ENVIRONMENT_SUPPORT.md) | How does the core environment connect to native TRL without duplicating its agent loop? |
