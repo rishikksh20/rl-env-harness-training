@@ -1,0 +1,8 @@
+{
+  "correct": {
+    "bounds.py": "def in_range(value, lower, upper):\n    return lower <= value < upper\n"
+  },
+  "visible_only": {
+    "bounds.py": "def in_range(value, lower, upper):\n    return lower < value < upper\n"
+  }
+}

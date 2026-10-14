@@ -1,0 +1,8 @@
+**
+!pyproject.toml
+!uv.lock
+!docker/
+!docker/Dockerfile
+!src/
+!src/coding_rl/
+!src/coding_rl/worker.py

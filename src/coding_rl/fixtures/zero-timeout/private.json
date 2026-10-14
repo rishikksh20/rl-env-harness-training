@@ -1,0 +1,31 @@
+[
+  {
+    "kwargs": {
+      "timeout": 0
+    },
+    "expected": 0
+  },
+  {
+    "kwargs": {
+      "timeout": 5
+    },
+    "expected": 5
+  },
+  {
+    "kwargs": {},
+    "expected": 30
+  },
+  {
+    "kwargs": {
+      "timeout": null,
+      "default": 9
+    },
+    "expected": 9
+  },
+  {
+    "kwargs": {
+      "default": 7
+    },
+    "expected": 7
+  }
+]

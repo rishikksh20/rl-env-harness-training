@@ -1,0 +1,1 @@
+Fix chunk_items(items, size) for a JSON list and a positive integer size. Return consecutive chunks of at most size items, preserving all items and their order, including a final shorter chunk. Empty input returns an empty list. Preserve the public API.

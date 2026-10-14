@@ -1,0 +1,15 @@
+{
+  "module": "timeout.py",
+  "function": "normalize_timeout",
+  "split": "train",
+  "prompt": "Fix normalize_timeout(timeout=None, default=30): omitted or null timeout uses the default; every supplied nonnegative integer, including zero, must be preserved. Preserve the public API.",
+  "task_id": "zero-timeout",
+  "editable": [
+    "timeout.py"
+  ],
+  "files": {
+    "timeout.py": "0f16b617eb0c54a84cc0d5ad0217361507b213f60df6545d18e4b250b6830801",
+    "test_visible.py": "b0b0b15d915e52dc78197e80545b620f4ddc55462eb4986a13223eae12373ee2",
+    "README.md": "f161fa855dcb2a6ce3d8178f1e4800b270817b9bded4c1b26914a786e7a8c28f"
+  }
+}

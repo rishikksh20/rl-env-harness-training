@@ -1,0 +1,1 @@
+Fix choose_option(value=None, default="fallback"). Omitted or null values use the default; all other JSON scalar values, including empty string, false, and zero, must be returned unchanged. Preserve the public API.

@@ -1,0 +1,15 @@
+{
+  "module": "chunks.py",
+  "function": "chunk_items",
+  "split": "eval",
+  "prompt": "Fix chunk_items(items, size) for a JSON list and a positive integer size. Return consecutive chunks of at most size items, preserving all items and their order, including a final shorter chunk. Empty input returns an empty list. Preserve the public API.",
+  "task_id": "chunk-tail",
+  "editable": [
+    "chunks.py"
+  ],
+  "files": {
+    "chunks.py": "61b61210686df3c34f6a63ca455c1918887edfbe9de6f7b0a43ba6133b1f607b",
+    "test_visible.py": "653b6732751ba40bbfbdc993c96a73543e4528ee334361955dbebabec1907935",
+    "README.md": "52daedb77253ee34f3335b57d954e0abceebcb9f07a79ce4b14c06effd2efeeb"
+  }
+}

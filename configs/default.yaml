@@ -1,0 +1,21 @@
+# Stage A: no model, inference framework, or optimizer.
+sandbox:
+  kind: docker
+  image: coding-rl-sandbox:stage-a
+  timeout_seconds: 20
+  memory_mb: 512
+  cpus: 1.0
+  pids_limit: 64
+  output_bytes: 16384
+environment:
+  max_tool_calls: 6
+  episode_seconds: 120
+  grading_seconds: 120
+  verifier_retries: 1
+  max_file_bytes: 65536
+  max_patch_bytes: 65536
+  max_list_entries: 200
+logging:
+  trace_dir: outputs/trajectories
+  level: INFO
+seed: 42

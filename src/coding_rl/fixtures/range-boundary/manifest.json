@@ -1,0 +1,15 @@
+{
+  "module": "bounds.py",
+  "function": "in_range",
+  "split": "train",
+  "prompt": "Fix in_range(value, lower, upper) for integer inputs. The interval includes its lower endpoint and excludes its upper endpoint. Empty intervals contain no values. Preserve the public API.",
+  "task_id": "range-boundary",
+  "editable": [
+    "bounds.py"
+  ],
+  "files": {
+    "bounds.py": "767569815d8b68e6b5975e81f338a31deccdf44f702a872eae446dc466df1d98",
+    "test_visible.py": "6441c2590227404915eca9c178efbb3febed03a484494e1895b6645e19961826",
+    "README.md": "b9052245e7760888cdde6e32c1b062d2d717d569fe0b0317b5ca5d816fd3c670"
+  }
+}

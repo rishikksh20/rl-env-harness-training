@@ -1,0 +1,5 @@
+{
+  "correct": {
+    "timeout.py": "def normalize_timeout(timeout=None, default=30):\n    return default if timeout is None else timeout\n"
+  }
+}

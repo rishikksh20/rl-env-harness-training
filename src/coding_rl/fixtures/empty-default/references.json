@@ -1,0 +1,5 @@
+{
+  "correct": {
+    "options.py": "def choose_option(value=None, default=\"fallback\"):\n    return default if value is None else value\n"
+  }
+}

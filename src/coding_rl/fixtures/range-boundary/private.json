@@ -1,0 +1,58 @@
+[
+  {
+    "kwargs": {
+      "value": 0,
+      "lower": 0,
+      "upper": 4
+    },
+    "expected": true
+  },
+  {
+    "kwargs": {
+      "value": 4,
+      "lower": 0,
+      "upper": 4
+    },
+    "expected": false
+  },
+  {
+    "kwargs": {
+      "value": -3,
+      "lower": -3,
+      "upper": -1
+    },
+    "expected": true
+  },
+  {
+    "kwargs": {
+      "value": 2,
+      "lower": 2,
+      "upper": 2
+    },
+    "expected": false
+  },
+  {
+    "kwargs": {
+      "value": 2,
+      "lower": 0,
+      "upper": 4
+    },
+    "expected": true
+  },
+  {
+    "kwargs": {
+      "value": -1,
+      "lower": 0,
+      "upper": 4
+    },
+    "expected": false
+  },
+  {
+    "kwargs": {
+      "value": 5,
+      "lower": 0,
+      "upper": 4
+    },
+    "expected": false
+  }
+]

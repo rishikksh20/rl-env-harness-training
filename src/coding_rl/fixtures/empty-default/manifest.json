@@ -1,0 +1,15 @@
+{
+  "module": "options.py",
+  "function": "choose_option",
+  "split": "train",
+  "prompt": "Fix choose_option(value=None, default=\"fallback\"). Omitted or null values use the default; all other JSON scalar values, including empty string, false, and zero, must be returned unchanged. Preserve the public API.",
+  "task_id": "empty-default",
+  "editable": [
+    "options.py"
+  ],
+  "files": {
+    "options.py": "238e836159ed187b93a19011e7e895b31601871d728691e2f1d026a8652359ff",
+    "test_visible.py": "8d88c66d9fe11b38110b400380389820c4fe05c9cb331a108b7ccd83919e4342",
+    "README.md": "54c2d6ca464c343f68345c2bfcbd1e5b8117d147bead40c874ef7a5a4db29ab3"
+  }
+}

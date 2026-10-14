@@ -1,0 +1,43 @@
+[
+  {
+    "kwargs": {
+      "value": ""
+    },
+    "expected": ""
+  },
+  {
+    "kwargs": {
+      "value": false
+    },
+    "expected": false
+  },
+  {
+    "kwargs": {
+      "value": 0
+    },
+    "expected": 0
+  },
+  {
+    "kwargs": {},
+    "expected": "fallback"
+  },
+  {
+    "kwargs": {
+      "value": null,
+      "default": "other"
+    },
+    "expected": "other"
+  },
+  {
+    "kwargs": {
+      "value": "chosen"
+    },
+    "expected": "chosen"
+  },
+  {
+    "kwargs": {
+      "default": "other"
+    },
+    "expected": "other"
+  }
+]
