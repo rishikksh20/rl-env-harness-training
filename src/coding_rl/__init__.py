@@ -1,8 +1,9 @@
-"""Model-free coding environment. Training integrations belong to later stages."""
+"""Coding environment and CPU rollouts. Heavy model imports remain lazy."""
 
 from coding_rl.config import Config, load_config
 from coding_rl.environment import CodingEnvironment, make_environment
 from coding_rl.harness import run_episode
+from coding_rl.rollout import run_model_episode
 from coding_rl.tasks import TaskCatalog
 
 __all__ = [
@@ -12,4 +13,5 @@ __all__ = [
     "load_config",
     "make_environment",
     "run_episode",
+    "run_model_episode",
 ]

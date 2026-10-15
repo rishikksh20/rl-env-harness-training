@@ -2,6 +2,8 @@
 
 Design date: **2026-10-14**. Phase 2 corresponds to Stage B in the original plan. This document specifies future implementation only. No inference packages, model weights, Python implementation, or configuration changes were added in this design pass.
 
+Implementation follow-up, **2026-10-15**: the design below is preserved as proposed. See [Phase 2 status](PHASE_2_STATUS.md) for the implemented CPU profile, executed validation, and remaining real rollout/evaluation gates.
+
 Read [the Phase 1 evaluation](PHASE_1_EVALUATION.md) first. Its cleanup/cache finding is the first prerequisite.
 
 ## 1. Goal and mental model

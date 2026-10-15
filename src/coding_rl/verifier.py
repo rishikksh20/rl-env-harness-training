@@ -1,5 +1,6 @@
 """Private assertion controller: candidate execution always stays in the worker."""
 
+import hashlib
 import json
 import math
 import time
@@ -11,6 +12,18 @@ from coding_rl.sandbox import Sandbox
 from coding_rl.tasks import Task
 
 VERIFIER_VERSION = "json-cases-v1"
+
+
+def grading_fingerprint(task: Task) -> str:
+    """Identify the protected plan without exporting its contents."""
+    plan = {
+        "version": VERIFIER_VERSION,
+        "starter": task.starter_hash,
+        "module": task.module,
+        "function": task.function,
+        "cases": [{"kwargs": c.kwargs, "expected": c.expected} for c in task.private_cases],
+    }
+    return hashlib.sha256(json.dumps(plan, sort_keys=True).encode()).hexdigest()
 
 
 @dataclass(frozen=True)

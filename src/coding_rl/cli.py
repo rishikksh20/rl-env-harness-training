@@ -1,4 +1,4 @@
-"""Readable model-free lesson and assertions, using one validated configuration."""
+"""Scripted lessons and real CPU rollout/evaluation, using validated configuration."""
 
 import argparse
 import json
@@ -7,7 +7,7 @@ import sys
 from dataclasses import asdict, replace
 from pathlib import Path
 
-from coding_rl.config import load_config
+from coding_rl.config import load_config, validate_model_mode
 from coding_rl.environment import make_environment
 from coding_rl.errors import InfrastructureError
 from coding_rl.harness import run_episode
@@ -35,21 +35,55 @@ def _print_event(event: dict) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Stage A coding-agent environment lesson (no model)"
+        description="Coding-agent environment lessons and CPU model rollouts"
     )
     commands = parser.add_subparsers(dest="command", required=True)
-    for name in ("env-demo", "env-inspect", "smoke"):
+    for name in ("env-demo", "env-inspect", "smoke", "rollout", "eval", "model-probe"):
         command = commands.add_parser(name)
         command.add_argument("--config", type=Path)
         command.add_argument("--sandbox", choices=["docker", "trusted_local"])
-        command.add_argument("--task", default="zero-timeout")
+        if name not in {"eval", "model-probe"}:
+            command.add_argument("--task", default="zero-timeout")
     args = parser.parse_args()
     environment = None
+    backend = None
     try:
         config = load_config(args.config)
         logging.basicConfig(level=config.logging.level, format="%(levelname)s %(message)s")
         if args.sandbox:
             config = replace(config, sandbox=replace(config.sandbox, kind=args.sandbox))
+        if args.command == "model-probe":
+            from coding_rl.probe import model_probe
+
+            result = model_probe(config)
+            print(json.dumps(result, indent=2))
+            return 0 if result["read_gate_passed"] else 1
+        if args.command in {"rollout", "eval"}:
+            validate_model_mode(config)
+            from coding_rl.models import TransformersBackend, dependency_versions
+
+            dependency_versions()
+            environment = make_environment(config)
+            if args.command == "rollout":
+                environment.catalog.get(args.task)
+            environment.sandbox.preflight()
+            backend = TransformersBackend(config.model)
+            if args.command == "rollout":
+                from coding_rl.rollout import run_model_episode
+
+                outcome = run_model_episode(environment, backend, args.task)
+                print(json.dumps(asdict(outcome), indent=2))
+                return (
+                    130 if outcome.finish_reason == "cancelled" else 0 if outcome.completed else 2
+                )
+            from coding_rl.evaluate import evaluate
+
+            result = evaluate(environment, backend)
+            print(json.dumps(result["metrics"], indent=2))
+            print(f"[report] {config.evaluation.report_path}")
+            if result["metrics"]["finish_reasons"].get("cancelled"):
+                return 130
+            return 2 if result["metrics"]["incomplete"] else 0
         if config.sandbox.kind == "trusted_local":
             print("[backend] trusted_local: authored fixtures only; no untrusted-code isolation")
         environment = make_environment(
@@ -102,10 +136,20 @@ def main() -> int:
         print(f"[error] {exc}", file=sys.stderr)
         return 1
     finally:
-        if environment:
-            if environment.phase == "active":
-                environment.finish("cancelled")
-            environment.cleanup()
+        try:
+            try:
+                if backend:
+                    backend.close()
+            finally:
+                if environment:
+                    try:
+                        if environment.phase == "active":
+                            environment.finish("cancelled")
+                    finally:
+                        environment.cleanup()
+        except (InfrastructureError, OSError) as exc:
+            print(f"[infrastructure_error] Resource release incomplete: {exc}", file=sys.stderr)
+            return 2
 
 
 if __name__ == "__main__":

@@ -17,7 +17,7 @@ from coding_rl.patches import apply_diff, make_diff
 from coding_rl.sandbox import Sandbox
 from coding_rl.tasks import Task, TaskCatalog, file_digest, relative_path
 from coding_rl.trace import Recorder
-from coding_rl.verifier import VERIFIER_VERSION, Verdict, verify
+from coding_rl.verifier import VERIFIER_VERSION, Verdict, grading_fingerprint, verify
 
 TOOLS = {
     "list_files": {"directory": "relative directory, default '.'"},
@@ -29,7 +29,19 @@ TOOLS = {
     "apply_patch": {"patch": "exact-context unified diff for existing allowed source"},
     "run_tests": {},
 }
-REASONS = {"final_response", "tool_limit", "episode_timeout", "scripted_finish", "cancelled"}
+REASONS = {
+    "final_response",
+    "tool_limit",
+    "episode_timeout",
+    "scripted_finish",
+    "cancelled",
+    "turn_limit",
+    "token_limit",
+    "context_limit",
+    "generation_timeout",
+    "parser_limit",
+    "infrastructure_failure",
+}
 
 
 class CodingEnvironment:
@@ -57,9 +69,12 @@ class CodingEnvironment:
         self._owned: tempfile.TemporaryDirectory | None = None
         self._submission: dict[str, str] | None = None
         self._verdict: Verdict | None = None
+        self._reward_published = False
         self._invalid = False
         self._termination: str | None = None
         self._started = 0.0
+        self._revision = 0
+        self.cleanup_seconds = 0.0
 
     def reset(self, task_id: str) -> None:
         """Start a fresh episode; return no duplicate dataset prompt."""
@@ -70,9 +85,11 @@ class CodingEnvironment:
         self.calls = 0
         self._submission = None
         self._verdict = None
+        self._reward_published = False
         self._invalid = False
         self._termination = None
         self._started = time.monotonic()
+        self.cleanup_seconds = 0.0
         self.recorder.start(self.episode_id, task_id)
         self.phase = "empty"
         try:
@@ -105,6 +122,7 @@ class CodingEnvironment:
             # One pointer swap commits the entire validated revision. Workers
             # only see disposable snapshots; no subprocess holds this path.
             self.workspace = staged
+            self._revision += 1
             if old:
                 shutil.rmtree(old)
         except BaseException:
@@ -166,6 +184,7 @@ class CodingEnvironment:
             for key, value in arguments.items()
         }
         self.recorder.emit("action", tool=name, arguments=logged)
+        revision_before = self._revision
         try:
             if self.phase != "active":
                 raise ActionError("Episode is frozen or closed")
@@ -182,6 +201,13 @@ class CodingEnvironment:
         except InfrastructureError:
             self.recorder.emit("infrastructure_error", operation=name)
             raise
+        except OSError as exc:
+            self.recorder.emit(
+                "infrastructure_error",
+                operation=name,
+                revision_committed=self._revision != revision_before,
+            )
+            raise InfrastructureError(f"Trusted filesystem operation failed during {name}") from exc
         result["remaining_calls"] = max(0, self.config.environment.max_tool_calls - self.calls)
         self.recorder.emit("observation", tool=name, result=result)
         return result
@@ -316,6 +342,8 @@ class CodingEnvironment:
     def get_reward(self) -> float:
         """Freeze, independently judge once, cache the completed verdict, and release resources."""
         if self._verdict is not None:
+            self.cleanup()
+            self._publish_reward()
             return self._verdict.reward
         if self.task is None:
             raise ValueError("Reset before asking for reward")
@@ -352,12 +380,19 @@ class CodingEnvironment:
                 "verify",
                 **asdict(self._verdict),
                 verifier_version=VERIFIER_VERSION,
+                grading_fingerprint=grading_fingerprint(self.task),
                 worker_identity=self.sandbox.identity,
             )
-            self.recorder.emit("reward", value=self._verdict.reward)
-            return self._verdict.reward
         finally:
             self.cleanup()
+        self._publish_reward()
+        return self._verdict.reward
+
+    def _publish_reward(self) -> None:
+        if not self._reward_published:
+            assert self._verdict is not None and self._owned is None
+            self.recorder.emit("reward", value=self._verdict.reward)
+            self._reward_published = True
 
     def inspect(self) -> dict:
         """Developer-only state view; excludes private cases and host workspace paths."""
@@ -387,11 +422,14 @@ class CodingEnvironment:
     def cleanup(self) -> None:
         if self._owned is None:
             return
+        started = time.monotonic()
         try:
             self._owned.cleanup()
         except OSError as exc:
             self.recorder.emit("infrastructure_error", operation="cleanup")
             raise InfrastructureError("Cannot release episode workspace") from exc
+        finally:
+            self.cleanup_seconds += time.monotonic() - started
         self._owned = None
         self.workspace = None
         self.phase = "closed"

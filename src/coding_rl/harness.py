@@ -25,6 +25,7 @@ def run_episode(
     """Script an authored attempt, independently grade it, and always release resources."""
     task = environment.catalog.get(task_id)
     target = task.variant(variant)
+    environment.recorder.policy = {"kind": "scripted", "version": "stage-a-v1"}
     environment.reset(task_id)
     try:
         for result in (environment.list_files(), environment.read_file(task.module)):

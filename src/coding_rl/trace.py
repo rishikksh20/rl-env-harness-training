@@ -8,6 +8,8 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 
+from coding_rl.errors import InfrastructureError
+
 EVENTS = {
     "reset",
     "action",
@@ -18,6 +20,12 @@ EVENTS = {
     "reward",
     "infrastructure_error",
     "cleanup",
+    "generation",
+    "parse",
+    "dispatch",
+    "model_observation",
+    "termination",
+    "outcome",
 }
 LOGGER = logging.getLogger(__name__)
 
@@ -32,6 +40,7 @@ class Recorder:
         self.task_id: str | None = None
         self.sequence = 0
         self.started = time.monotonic()
+        self.policy = {"kind": "scripted", "version": "stage-a-v1"}
 
     def start(self, episode_id: str, task_id: str) -> None:
         self.episode_id, self.task_id = episode_id, task_id
@@ -42,7 +51,7 @@ class Recorder:
         if event not in EVENTS or self.episode_id is None:
             raise ValueError("Unknown trace event or no episode")
         record = {
-            "schema_version": 1,
+            "schema_version": 2,
             "event": event,
             "run_id": self.run_id,
             "episode_id": self.episode_id,
@@ -50,11 +59,14 @@ class Recorder:
             "sequence": self.sequence,
             "timestamp": datetime.now(UTC).isoformat(),
             "elapsed_seconds": time.monotonic() - self.started,
-            "policy": {"kind": "scripted", "version": "stage-a-v1"},
+            "policy": self.policy,
             "payload": payload,
         }
-        with (self.root / f"{self.episode_id}.jsonl").open("a", encoding="utf-8") as stream:
-            stream.write(json.dumps(record, allow_nan=False) + "\n")
+        try:
+            with (self.root / f"{self.episode_id}.jsonl").open("a", encoding="utf-8") as stream:
+                stream.write(json.dumps(record, allow_nan=False) + "\n")
+        except OSError as exc:
+            raise InfrastructureError("Cannot write episode trace") from exc
         self.sequence += 1
         LOGGER.debug("episode=%s event=%s sequence=%s", self.episode_id, event, record["sequence"])
         if self.observer:
@@ -63,5 +75,8 @@ class Recorder:
     def artifact(self, name: str, value: object) -> str:
         filename = f"{self.episode_id}-{name}.json" if self.episode_id else f"{name}.json"
         path = self.root / filename
-        path.write_text(json.dumps(value, indent=2, allow_nan=False) + "\n", encoding="utf-8")
+        try:
+            path.write_text(json.dumps(value, indent=2, allow_nan=False) + "\n", encoding="utf-8")
+        except OSError as exc:
+            raise InfrastructureError("Cannot write episode artifact") from exc
         return path.name

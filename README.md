@@ -1,6 +1,6 @@
 # Minimal coding-agent RL lab
 
-Stage A implements a model-free, stateful coding environment. Read a file, apply a patch, run visible tests, freeze the changes, and obtain an independent binary correctness reward. Each attempt starts from an immutable tiny repository. No model weights, PyTorch, TRL, GPU, inference server, or optimizer are required yet.
+The project provides a stateful coding environment and a Phase 2 CPU Transformers rollout/evaluation path. Read a file, apply a patch, run visible tests, freeze the changes, and obtain an independent binary correctness reward. Each attempt starts from an immutable tiny repository. The base install and scripted lessons require no model weights or inference packages. Training remains a later phase.
 
 ## Setup with uv
 
@@ -50,6 +50,39 @@ CODING_RL_DOCKER_TESTS=1 uv run pytest -m docker
 
 Tests distinguish executable authored local cases, simulated infrastructure failures, and real Docker tests. Skipped Docker checks are reported explicitly.
 
+## CPU model rollouts and evaluation
+
+Install the optional inference profile and prepare the immutable public checkpoint once:
+
+```bash
+uv sync --locked --extra rollout
+uv run --extra rollout hf download Qwen/Qwen3.5-0.8B \
+  --revision 2fc06364715b967f1860aea9cf38778875588b17 \
+  --include '*.json' --include '*.jinja' --include '*.safetensors' \
+  --cache-dir outputs/model-cache
+```
+
+The supplied CPU profile uses FP32, one sequence per request, four CPU threads, and offline loading after preparation. PyTorch's explicit CPU index is selected on Linux; macOS uses its standard CPU-capable wheel. Keep `--extra rollout` on `uv run` so uv retains the inference dependencies.
+
+The compatibility probe loads and warms the text model, generates a real tool call, and permits only a source read. It needs no Docker and produces no correctness score:
+
+```bash
+uv run --extra rollout coding-rl model-probe --config configs/rollout-cpu.yaml
+```
+
+Real episodes and evaluation require the prepared Docker worker described above:
+
+```bash
+uv run --extra rollout coding-rl rollout --config configs/rollout-cpu.yaml --task zero-timeout
+uv run --extra rollout coding-rl eval --config configs/rollout-cpu.yaml
+```
+
+`rollout` records genuine model decisions; it never selects a reference repair. `eval` selects the held-out `chunk-tail` partition by default and saves `outputs/evaluation.json` after every attempt. Set `evaluation.split: train` for development. Configure sampling explicitly before declaring a baseline; the default greedy repeats are not independent samples.
+
+Trajectories include exact generated IDs/text, parsed calls, bounded model-visible observations, accepted source, stop reasons, verdicts, and cleanup status. Healthy limits are graded; infrastructure failures have no usable reward and are reported separately. Generation timeout terminates the inference process; the next attempt reloads before its episode clock starts. The controller accepts one Qwen3.5 XML tool call per turn and rejects multi-call proposals atomically.
+
+See [Phase 2 status](docs/PHASE_2_STATUS.md) for executed checks, CPU measurements, and outstanding integration gates. This checkout's implementation validation did not have Docker available, so it does not publish a held-out model score.
+
 ## Follow the implementation
 
 | File | Responsibility |
@@ -62,7 +95,10 @@ Tests distinguish executable authored local cases, simulated infrastructure fail
 | `worker.py` | Candidate callable execution; no expected values or assertions |
 | `verifier.py` | Trusted assertions against values returned by independent workers |
 | `trace.py` | Ordered JSONL events and final artifact recording |
-| `harness.py`, `cli.py` | Scripted educational attempts and commands |
+| `harness.py`, `cli.py` | Scripted lessons and command entry points |
+| `models.py`, `inference_worker.py` | Lazy tokenizer and persistent, cancellable CPU inference process |
+| `protocol.py`, `rollout.py` | Strict Qwen3.5 protocol, public conversation, dispatcher and budgets |
+| `evaluate.py`, `probe.py` | Held-out scheduling/metrics and ungraded compatibility diagnostic |
 
 The public tools are `list_files`, `read_file`, `apply_patch`, and `run_tests`. Only existing allowed source files can be edited. Patches cannot add/delete/rename files or change protected tests. The final submission is reconstructed from actual source bytes, not from the agent's claim or a supplied Git diff.
 
@@ -72,6 +108,6 @@ Infrastructure failures raise a distinct exception and produce no reward. Wrong 
 
 ## Next phases
 
-Stage B adds real Transformers CPU rollouts and held-out evaluation. Stage C adds a verified native TRL `environment_factory` adapter and genuine GRPO updates. Stage D optionally adds custom harnesses and CPU vLLM evaluation. No training commands are advertised in this release.
+Stage B's CPU rollout/evaluation implementation is present; its measured acceptance status is recorded separately. Stage C adds a verified native TRL `environment_factory` adapter and genuine GRPO updates. Stage D optionally adds custom harnesses and CPU vLLM evaluation. No training commands are advertised in this release.
 
 See [the design index](docs/README.md), [mental model](docs/ARCHITECTURE.md), and [implementation plan](docs/06_STEP_BY_STEP_IMPLEMENTATION.md). Docker unavailable, missing worker image, or unsupported hard limits fail clearly; fix that infrastructure or explicitly use the authored-fixture local lesson.

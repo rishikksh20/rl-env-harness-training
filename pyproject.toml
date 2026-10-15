@@ -10,6 +10,17 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = ["PyYAML>=6.0.2,<7", "pytest==8.4.2"]
 
+[project.optional-dependencies]
+rollout = ["torch==2.14.1", "transformers==5.19.0", "huggingface-hub==2.2.0"]
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'", extra = "rollout" }]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
 [project.scripts]
 coding-rl = "coding_rl.cli:main"
 

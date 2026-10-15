@@ -1,6 +1,6 @@
 # Architecture and mental model
 
-Status: original architecture design. The Stage A core is implemented; model inference and training remain future stages. See [Stage A status](PHASE_A_STATUS.md), and read this before the trainer plan.
+Status: original architecture design. The Stage A core and Stage B CPU inference/controller code are implemented; training remains a future stage. See [Stage A status](PHASE_A_STATUS.md) and [Phase 2 validation status](PHASE_2_STATUS.md), and read this before the trainer plan.
 
 ## 1. A coding environment is a changing repository
 

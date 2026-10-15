@@ -1,6 +1,6 @@
 # Harnesses, rollouts, traces, and evaluation
 
-Status: design for current and future harnesses. Stage A implements the scripted driver; model inference, custom harnesses, and model evaluation remain future work. See [Stage A status](PHASE_A_STATUS.md).
+Status: original design for current and future harnesses. Stage A implements the scripted driver. Phase 2 adds the CPU model harness and evaluator; see [Phase 2 status](PHASE_2_STATUS.md) for actual validation and the single-call-per-turn protocol that supersedes this draft's multi-call proposal. Custom harnesses and native training remain future work.
 
 ## 1. Harness responsibility
 

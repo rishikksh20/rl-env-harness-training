@@ -259,10 +259,57 @@ def test_all_authored_fixtures_and_trace_schema(env):
             ]
             assert [r["sequence"] for r in records] == list(range(len(records)))
             assert all(
-                r["schema_version"] == 1 and r["policy"]["kind"] == "scripted" for r in records
+                r["schema_version"] == 2 and r["policy"]["kind"] == "scripted" for r in records
             )
-            assert records[-1]["event"] == "cleanup"
+            assert records[-1]["event"] == "reward"
+            assert next(r["sequence"] for r in records if r["event"] == "cleanup") < next(
+                r["sequence"] for r in records if r["event"] == "reward"
+            )
             assert sum(r["event"] == "reward" for r in records) == 1
             assert not any(
                 "private.json" in json.dumps(r) or "expected" in json.dumps(r) for r in records
             )
+
+
+def test_cached_verdict_retries_cleanup_before_publishing_reward(env, monkeypatch):
+    repair(env)
+    original = env.cleanup
+
+    def fail():
+        raise InfrastructureError("simulated cleanup failure")
+
+    monkeypatch.setattr(env, "cleanup", fail)
+    with pytest.raises(InfrastructureError, match="cleanup"):
+        env.get_reward()
+    assert env._verdict.reward == 1.0 and env.workspace.exists()
+    records = (env.recorder.root / f"{env.episode_id}.jsonl").read_text()
+    assert '"event": "reward"' not in records
+    monkeypatch.setattr(env, "cleanup", original)
+    monkeypatch.setattr(env.sandbox, "invoke", lambda *a, **k: pytest.fail("reran verification"))
+    assert env.get_reward() == env.get_reward() == 1.0
+    assert env.workspace is None and env.phase == "closed"
+    events = [
+        json.loads(line)["event"]
+        for line in (env.recorder.root / f"{env.episode_id}.jsonl").read_text().splitlines()
+    ]
+    assert events.count("verify") == events.count("reward") == 1
+    assert events.index("cleanup") < events.index("reward")
+
+
+def test_trusted_commit_io_failure_records_whether_revision_committed(env, monkeypatch):
+    env.reset("zero-timeout")
+    original = env._commit
+
+    def fail_after_commit(files):
+        original(files)
+        raise OSError("old revision cleanup failed")
+
+    monkeypatch.setattr(env, "_commit", fail_after_commit)
+    with pytest.raises(InfrastructureError, match="filesystem"):
+        env.apply_patch(make_diff(env.task.starter, env.task.variant("correct")))
+    assert env.inspect()["source_hash"] != env.task.starter_hash
+    records = [
+        json.loads(line)
+        for line in (env.recorder.root / f"{env.episode_id}.jsonl").read_text().splitlines()
+    ]
+    assert records[-1]["payload"]["revision_committed"] is True

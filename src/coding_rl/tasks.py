@@ -32,6 +32,14 @@ class Case:
 
 
 @dataclass(frozen=True)
+class PublicTask:
+    task_id: str
+    prompt: str
+    editable: tuple[str, ...]
+    starter_hash: str
+
+
+@dataclass(frozen=True)
 class Task:
     task_id: str
     prompt: str
@@ -43,6 +51,9 @@ class Task:
     starter_hash: str
     private_cases: tuple[Case, ...]
     references: Mapping[str, Mapping[str, str]]
+
+    def public(self) -> PublicTask:
+        return PublicTask(self.task_id, self.prompt, self.editable, self.starter_hash)
 
     def variant(self, name: str) -> dict[str, str]:
         if name == "baseline":

@@ -1,8 +1,8 @@
 # Minimal coding-agent RL lab: implementation drafts
 
-These documents turn [the build specification](../CODEX_AGENTIC_RL_ENV_SPEC.md) into a small, staged Python implementation plan. **Stage A is now implemented**: see [the run guide](../README.md) and [Stage A implementation status](PHASE_A_STATUS.md). The original architecture drafts explain the design; model inference and training remain future stages.
+These documents turn [the build specification](../CODEX_AGENTIC_RL_ENV_SPEC.md) into a small, staged Python implementation plan. Stage A and the Phase 2 CPU rollout/evaluation implementation are present: see [the run guide](../README.md), [Stage A status](PHASE_A_STATUS.md), and [Phase 2 validation status](PHASE_2_STATUS.md). The original architecture drafts explain the design; training remains a future stage.
 
-The latest follow-up is [the Phase 1 evaluation](PHASE_1_EVALUATION.md) and [the focused Phase 2 rollout design](PHASE_2_MODEL_ROLLOUT_DESIGN.md). The review confirmed a cleanup/cache edge case to fix before real model rollouts; the design pass changed documentation only.
+The [Phase 1 evaluation](PHASE_1_EVALUATION.md) identified a cleanup/cache edge case, now fixed with a regression test. The [Phase 2 rollout design](PHASE_2_MODEL_ROLLOUT_DESIGN.md) remains the original design record; [Phase 2 status](PHASE_2_STATUS.md) distinguishes implemented behavior from executed model/Docker gates.
 
 The central idea is simple: a model uses tools to change a private copy of a tiny repository; independent executable tests judge the final changes; TRL uses rewards from several attempts at the same task to update the model.
 
@@ -10,6 +10,7 @@ The central idea is simple: a model uses tools to change a private copy of a tin
 
 | Document | Question it answers |
 |---|---|
+| [PHASE_2_STATUS.md](PHASE_2_STATUS.md) | What Phase 2 code exists, how do I run it, and which acceptance gates have actually run? |
 | [PHASE_1_EVALUATION.md](PHASE_1_EVALUATION.md) | What did the current code and rerun tests establish, and what needs attention before a model is added? |
 | [PHASE_2_MODEL_ROLLOUT_DESIGN.md](PHASE_2_MODEL_ROLLOUT_DESIGN.md) | What is the concrete CPU model flow, dependency plan, protocol, and ordered coding checklist? |
 | [PHASE_A_STATUS.md](PHASE_A_STATUS.md) | What works today, which commands were tested, and what changed from the draft? |
@@ -41,7 +42,7 @@ The existing official TRL documentation supports the planned environment integra
 
 ## Planned CLI and outputs
 
-The executable is `coding-rl`. Each command accepts the same `--config` option, pointing to `configs/default.yaml` when explicitly selected. `env-demo`, `env-inspect`, and `smoke` are implemented in Stage A. `rollout`, `train`, and `eval` remain future interfaces.
+The executable is `coding-rl`. Each command accepts the same `--config` option. `env-demo`, `env-inspect`, and `smoke` use the lightweight base profile. `rollout`, `eval`, and the ungraded `model-probe` use the optional rollout extra and `configs/rollout-cpu.yaml`. `train` remains a future interface.
 
 | Command | Purpose | Completion evidence |
 |---|---|---|
@@ -56,4 +57,4 @@ Future runtime artifacts belong under `outputs/`, outside fixture repositories. 
 
 ## Evidence status
 
-Source review date: **2026-10-14**. Official library and model documentation were reviewed for the design. Stage A subsequently installed locked dependencies and tested real Docker execution; [PHASE_A_STATUS.md](PHASE_A_STATUS.md) records the evidence. No model forward pass or optimizer step has been performed. Model/token budgets remain proposals for later compatibility gates.
+Original source review date: **2026-10-14**. Official library and model documentation informed the design. [Stage A status](PHASE_A_STATUS.md) records its original Docker evidence. The **2026-10-15** [Phase 2 status](PHASE_2_STATUS.md) records the CPU model forward/generation probes, controller tests, calibrated profile, and remaining Docker/model evaluation gates. No optimizer step has been performed.

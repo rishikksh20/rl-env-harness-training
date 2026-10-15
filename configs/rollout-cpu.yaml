@@ -1,0 +1,26 @@
+# Download the pinned snapshot first, then run offline. See docs/PHASE_2_STATUS.md.
+model:
+  name: Qwen/Qwen3.5-0.8B
+  revision: 2fc06364715b967f1860aea9cf38778875588b17
+  tokenizer_revision: 2fc06364715b967f1860aea9cf38778875588b17
+  device: cpu
+  dtype: float32
+  cache_dir: outputs/model-cache
+  offline: true
+  startup_seconds: 600
+  threads: 4
+environment:
+  episode_seconds: 900
+rollout:
+  max_turns: 8
+  max_new_tokens: 256
+  episode_tokens: 768
+  context_tokens: 2048
+  observation_tokens: 256
+  generation_seconds: 300
+  do_sample: false
+evaluation:
+  split: eval
+  attempts_per_task: 4
+  report_path: outputs/evaluation.json
+seed: 42
