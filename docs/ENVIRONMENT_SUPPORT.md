@@ -4,6 +4,8 @@ Status: design draft. Official documentation reviewed on **2026-10-14**; no inst
 
 The Stage A core and scripted commands are implemented; the TRL adapter described here belongs to Stage C. [Stage A status](PHASE_A_STATUS.md) includes the actual environment transcript and validation record.
 
+Next-phase design update, **2026-10-15**: the CPU manual harness/evaluator is now implemented. [Phase 3 native training](PHASE_3_NATIVE_TRAINING_DESIGN.md) specifies the next file-level work and admission gates; [the roadmap](06_STEP_BY_STEP_IMPLEMENTATION.md#4-stage-c-native-trl-and-genuine-updates) gives the coding order. Native API statements below remain design evidence, not an installed integration result.
+
 ## 1. One environment core, one training adapter
 
 The framework-independent core owns the authoritative files and the episode lifecycle. It understands a stable task ID, tools, counters, finalization, and verification. It knows nothing about gradients, optimizer states, or a particular model provider.
@@ -108,6 +110,8 @@ Only a completed correctness verdict produces reward 1.0 or 0.0. The reward stay
 The core caches a completed verdict by frozen artifact, task revision, and verifier version. Terminal verification releases sandbox/workspace resources in a guaranteed finalization path. The manual owner also invokes idempotent cleanup; reset removes stale state before allocating anything new. Shutdown must close the environment pool after success, exception, or user interruption.
 
 On infrastructure failure, retry verification of the same frozen artifact within a bounded policy. If it remains unavailable, record no reward. Training must abort or retry the affected complete collection unit before an optimizer update; selectively deleting one group member or substituting zero changes the training semantics. The first version can fail the run cleanly if the tested trainer has no supported complete-group exclusion hook.
+
+The adapter must also retain trusted infrastructure-failure state when the native loop catches a tool exception and converts it to an observation. A later completed grade cannot make that collection eligible again. [Phase 3's failure policy](PHASE_3_NATIVE_TRAINING_DESIGN.md#7-infrastructure-failure-cancellation-and-resource-ownership) requires a verified group-admission point and parent-owned cleanup after hard process cancellation; merely raising the core exception is not sufficient evidence.
 
 ## 7. Native tensors are the training contract
 

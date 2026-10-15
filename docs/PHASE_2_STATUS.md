@@ -78,3 +78,5 @@ Each run saves resolved configuration under its trace directory. Episode files c
 Schema v2 publishes `verify`, then `cleanup`, then the usable `reward`. Consumers of Stage A's schema v1 should account for this intentional ordering/schema change. Correctness, stop reason, and completed run status are independent fields.
 
 Phase 3 still needs native TRL environment integration, same-task grouping, action masks/probabilities, truncation alignment, and a genuine informative update with changed weights.
+
+The next work is designed in [PHASE_3_NATIVE_TRAINING_DESIGN.md](PHASE_3_NATIVE_TRAINING_DESIGN.md), with coding order in [the implementation roadmap](06_STEP_BY_STEP_IMPLEMENTATION.md). Its B-close prerequisite retains this document's unexecuted real Docker episode and held-out baseline gates; the design itself supplies no additional runtime evidence.

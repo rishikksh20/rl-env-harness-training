@@ -1,6 +1,8 @@
 # Step-by-step implementation plan and release gates
 
-Status: Stage A is implemented and tested; Stages B–D remain future work. This document retains the staged checklist. See [Stage A status](PHASE_A_STATUS.md) for actual commands, results, and implementation choices.
+Status updated **2026-10-15**: Stage A and Stage B's CPU rollout/evaluation code are implemented. Stage B still needs a fully graded real-model Docker episode and a declared held-out baseline. Stage C native training is next; Stage D remains deferred. See [Stage A status](PHASE_A_STATUS.md), [Phase 2 validation](PHASE_2_STATUS.md), and the detailed [Phase 3 native training design](PHASE_3_NATIVE_TRAINING_DESIGN.md).
+
+This is the ordered implementation roadmap. The status documents record executed evidence; future milestones below do not imply installed dependencies or completed runs.
 
 ## 1. Delivery sequence
 
@@ -12,6 +14,15 @@ Status: Stage A is implemented and tested; Stages B–D remain future work. This
 | D | Can I swap the harness or inference backend? | Optional custom adapter and CPU vLLM evaluation | Equivalent environment behavior and truthful capability reporting |
 
 Do not build optional adapters before the environment lesson works. Within each stage, implement one working path, run its relevant checks, and fix failures before expanding the surface.
+
+| Current milestone | Evidence state | Immediate action |
+|---|---|---|
+| A: environment and scripted lesson | Implemented; original Docker results recorded; cleanup/cache correction tested | Preserve as the shared core |
+| B: CPU loading/parser/read | Genuine target read validated and saved | Reuse the pinned profile and tokenizer EOS fix |
+| B: manual harness/evaluator | Implemented; recorded suite has 112 passes and eight Docker skips | Close the real edit/test/grading and baseline gates |
+| C: native adapter, grouping and tensors | Unimplemented | Resolve an installed native profile, then prove admission invariants |
+| C: optimizer, checkpoint and comparison | Unimplemented | Demonstrate a real informative update and reload/evaluation |
+| D: custom/vLLM backends | Deferred | Start only after the native path is established |
 
 ## 2. Stage A: environment lesson without a model
 
@@ -63,57 +74,83 @@ Completion evidence: readable actual transcript saved for the future setup READM
 
 ## 3. Stage B: real model rollout and evaluation
 
-The detailed next-phase flow and file-level checklist now live in [PHASE_2_MODEL_ROLLOUT_DESIGN.md](PHASE_2_MODEL_ROLLOUT_DESIGN.md). Begin with its B0 prerequisite milestone from [the Phase 1 evaluation](PHASE_1_EVALUATION.md).
+Implementation is present; [Phase 2 status](PHASE_2_STATUS.md) is the evidence record. The [original design](PHASE_2_MODEL_ROLLOUT_DESIGN.md) remains useful for its protocol and acceptance checklist. Its B0 cleanup/cache prerequisite is fixed; do not rebuild the working manual harness as part of training.
 
 ### B1. Resolve and record a CPU-compatible model stack
 
-Preserve `Qwen/Qwen3.5-0.8B` as the target. Inspect the current official text-only loading route, supported architecture class, tokenizer/template, and CPU fallback. Test generation and tool parsing before running a full task. Pin a working CPU profile with model revision and hardware metadata. The older plain-attention small fallback described in the training document may validate infrastructure when the target gate is unresolved; report which model actually ran.
+**Implemented and partially validated.** The optional rollout stack, immutable target revision, text-only loading, template identity, CPU forward/warm generation, and genuine read dispatch are recorded. Preserve the tokenizer's EOS/pad IDs and non-thinking profile. Additional devices and Linux CPU execution require their own runtime checks.
 
-Completion evidence: a real CPU forward/generation succeeds, produces a parsable allowed tool call, and records memory and latency. Plain text generation alone is insufficient evidence of tool support.
+Remaining evidence: measured complete episodes, including edit/test calls and independent grading. The saved read diagnostic alone cannot certify a model repair or training feasibility.
 
 ### B2. Add the compact manual harness
 
-Implement the episode flow in [the harness document](05_HARNESS_ROLLOUTS_AND_EVALUATION.md). Keep generation, parsing, dispatch, budget accounting, and cancellation readable. Preserve raw generations and exact tool observations in the trace. Do not infer success from the final assistant message.
+**Controller implemented; real grading gate remains open.** On a Docker-capable host, build the existing execution worker, verify effective limits, and run the real Docker tests. Use the three training-partition tasks for development. Run a genuine model read/edit/test attempt through `run_model_episode`, freeze the accepted source, and independently verify it. Keep the scripted `run_episode` separate.
 
-Completion evidence: a real model can read and attempt an edit, receives visible feedback, and ends with a frozen candidate judged independently. A failed model attempt still demonstrates valid rollout plumbing; do not inject the scripted repair into its prompt or score.
+Completion evidence: raw model generations, validated proposed edit, visible observation, source/diff hash, verifier verdict, actual stop reason, and completed cleanup. An incorrect but validly graded attempt can pass this integration gate; an injected reference repair cannot.
 
 ### B3. Add held-out evaluation and CPU benchmarks
 
-Implement `rollout` and `eval`, saved JSON summaries, per-task outcomes, and coverage/error counts. Evaluate the original checkpoint before training with fixed settings. Record model load time, generation throughput, peak resident memory, tool execution time, and grading time.
+**CLI and scheduler implemented; reported baseline remains open.** Declare sampling, four attempts per held-out task, seeds, budgets, model/template identity, sandbox image, verifier identity, and report location before running the original checkpoint on `chunk-tail`. The supplied profile is greedy by default; repeated greedy attempts are not independent samples. Keep development tuning on the training partition.
 
-Completion evidence: valid metrics denominators, protected held-out partition, unchanged model weights in rollout mode, repeatable fixture state, and clear distinction between model failure and infrastructure outage.
+Completion evidence: all per-attempt artifacts, planned/started/valid/incomplete counts, pass rate over valid attempts, nullable rate when none are valid, and generation/tool/grading/cleanup costs. First-token and decode-only timings remain unavailable until instrumented. CPU request timing does not predict backward-pass cost.
+
+**B-close gates the training runtime proof:** B2's real grading evidence and B3's fixed baseline are the first remaining delivery. Native adapter tests and dependency investigation may proceed independently while Docker access is unresolved.
 
 ## 4. Stage C: native TRL and genuine updates
 
-### C1. Pin an actually supported native environment contract
+The detailed flow, proposed profiles, interfaces, file ownership, failure policies, and acceptance evidence are in [PHASE_3_NATIVE_TRAINING_DESIGN.md](PHASE_3_NATIVE_TRAINING_DESIGN.md). The sequence below is the coding order.
 
-Inspect installed `GRPOTrainer`/configuration signatures and corresponding versioned official documentation. Create the no-argument factory and narrow adapter. Use an external dataset of public prompts plus task IDs; reset produces no duplicate user prompt. Verify exact public tool discovery and document environment reuse behavior.
+### C1. Resolve a native dependency and hardware profile
 
-Completion evidence: exact versions recorded; only four tools discovered; dataset metadata reaches reset; native tool loop runs; repeated adapter reset allocates pristine separate state. Do not silently replace the required integration with an eval-only manual loop.
+Preserve the base/rollout installation and resolve an optional native training profile. Inspect installed `GRPOTrainer`/configuration signatures, documented extension points, parser/template selection, and text-model loading. Record exact versions/source revisions and measure a forward/backward memory and time probe before admitting an expensive run. CPU FP32 training is experimental; CUDA requires a separate compatible wheel/device profile.
 
-### C2. Prove grouping, budgets, and learning sequence correctness
+Completion evidence: reproducible optional dependency graph, usable native environment API, finite forward/backward on the selected device/dtype, measured headroom, and unchanged base/CPU rollout packaging. Fail incompatible extra/device combinations before allocation.
 
-Collect a group of four same-task attempts with distinct episode resources and identical starter hashes. Validate completion ordering, generation/batch divisibility, seed behavior, terminal reward alignment, and complete-group infrastructure handling.
+### C2. Implement the thin adapter and public training rows
 
-Inspect the native learning sequence: prompt/observation conditioning, generated call tokens, masks, and applicable log probabilities. Check chat-template prefix preservation. For Qwen3.5, start with independent padded sequences and disabled packing; verify batched versus independent behavior and recurrent-state boundaries.
+Add `trl_env.py` with a no-argument factory and exactly four public tool methods plus reserved `reset`/`get_reward`. Keep core, run owner, cleanup, and inspection private. Construct train-only rows from public projections, with system instructions and editable paths once; dataset-driven reset returns no duplicate prompt. Reuse strict argument validation and bounded observations without embedding the manual rollout loop in TRL.
 
-Deliberately exercise token/context/tool limits, including a patch call near a native completion boundary. Prove that accepted side effects match the recorded trainable action history and that native truncation policy is applied consistently. A supported hook or explicit fail-before-update behavior is necessary when this cannot be guaranteed. Avoid a private-method monkeypatch presented as supported integration.
+Completion evidence: exact native tool discovery/schemas, held-out ID rejection, no grading/reference metadata in prompts, genuine native tool execution, stable policy identity, and pristine independent resets when adapters are reused.
 
-Completion evidence: all invariants pass, loss inputs are aligned, and no unsafe or infrastructure-corrupted group reaches an optimizer. If a compatibility gate fails, finish the working environment/CPU rollout deliverables and document the precise native-training blocker.
+### C3. Admit complete groups with honest budgets and failures
 
-### C3. Perform one real informative GRPO update
+Collect four same-task attempts with distinct episode resources and identical starter/grading identities. Correlate collection, policy version, native completion position, episode, and terminal reward. Validate actual generation/effective batch relationships and complete-group ordering.
 
-Configure a small single-device run using native Transformers generation. Let the actual policy generate the attempts. Obtain at least one valid nonzero-variance reward group without substituting scripted trajectories or edited rewards. If all groups have equal rewards, use legitimate easier training tasks, longer verified budgets, or a more capable explicitly selected model; report the change.
+Map each native token/context/iteration/call limit explicitly. The manual controller's all-proposal counter and one-call policy need a verified native implementation point before they can be claimed. Exercise a patch and tool result near a completion cutoff; accepted effects and observations must survive in the exact trainer-held history.
 
-Use TRL for advantages, selected GRPO-family loss, masks, probabilities, and optimization. Start with one update per collected batch, a documented low learning rate, and explicit KL coefficient. Record the chosen loss type rather than relying on an evolving library default. Keep CPU full training experimental and measured; CUDA is the preferred practical training device when available.
+Latch tool/grader/recorder/cleanup infrastructure failures in trusted state so a native loop cannot turn them into ordinary model errors and later admit the group. Retry grading only against the same frozen submission. Require a supported complete-group admission/abort point before learning; do not silently replace a failed member with zero or resample only that member.
 
-Completion evidence: finite loss and gradients, incremented optimizer/global step, changed intended trainable parameters beyond recorded numerical tolerance, unchanged frozen parameters where applicable, saved checkpoint, and successful reload. A step counter or newly written checkpoint directory alone is insufficient.
+Completion evidence: complete group/reward alignment, bounded unknown/malformed calls under declared native semantics, boundary-history agreement, and fault injection proving infrastructure-corrupted groups cannot reach an optimizer. If required native hooks are unavailable, mark that profile unsupported and retain the working inference path.
 
-### C4. Add LoRA/full modes and compare held-out behavior
+### C4. Audit native tensors and prove cancellation ownership
 
-Add PEFT only after the native full-path mechanics are understood, or use it as an explicitly tested memory profile when needed. Verify correct target modules, trainable parameter count, checkpoint/base-model identity, and reload behavior. Full and LoRA modes have separate compatibility results.
+Inspect actual IDs, action/loss masks, behavior/current probabilities, and reference probabilities if configured. Verify non-thinking prefixes/EOS, zero loss on observations/padding, declared handling of truncated sequences, and independent versus padded Qwen3.5 behavior. Start without packing and ensure recurrent/cache state does not leak between samples.
 
-Evaluate the saved checkpoint under the Stage B protocol. Report before/after verified metrics, equal-reward group rate, sampling/resource settings, and small-sample limits. A lack of improvement is acceptable evidence if the update itself is valid.
+Supervise the native training process for hard deadlines. Register exact run-owned containers and temporary roots so the parent can release them after forced child termination; extending only the inference-worker timeout is insufficient. Preserve the last complete checkpoint and reject partial saves.
+
+Completion evidence: supported native tensor export/audit, finite aligned learning inputs, and graceful/forced cancellation tests during generation, execution, grading, and save with no live candidate resources. JSONL re-tokenization cannot replace this evidence.
+
+### C5. Perform one genuine informative GRPO update
+
+Use the admitted native model to generate a group containing both verified rewards zero and one. Start with one device, four attempts, one update per collection, explicit loss/scaling/sampling, `beta=0.0`, low learning rate, and zero weight decay for the first proof. Set a finite feasibility pilot and record equal-reward/fully masked groups rather than declaring them successful learning.
+
+TRL computes advantages, probabilities, masks, loss, and optimization. No scripted trajectories, edited rewards, or reference repairs may supply the mixed group. Legitimate task/model/budget changes create a new declared training-only pilot and compatible comparison profile.
+
+Completion evidence: finite nonzero task-reward gradients, advanced optimizer/global step, intended trainable tensors changed above declared numerical tolerances, frozen tensors unchanged where applicable, and subsequent generation using the updated policy.
+
+### C6. Save, reload, and compare under the fixed evaluator
+
+Add content-identified local full/LoRA policy sources and completion manifests. Preserve existing immutable Hub configurations. Record checkpoint/base/adapter identity, native template, evaluation tokenizer, dependencies, configuration, update step, grader/image identity, and file hashes. Verify reload before publishing a checkpoint as usable; resume state is a separate contract from inference loading.
+
+Extend the current inference worker to load trained artifacts offline. Evaluate the original and updated policy with the same B3 partition, seeds, sampling, evaluator template, limits, verifier, and denominator. Do not accidentally change the evaluation prompt by saving a native training-patched tokenizer.
+
+Completion evidence: complete reloadable artifact, stable deterministic reload outputs/logits within tolerance, matched before/after reports, coverage/error counts, and measured costs. A lack of pass-rate improvement is acceptable if the update and comparison are valid.
+
+### C7. Validate the second full/LoRA mode
+
+Complete one mode first, then add the second with the same admission, tensor, update, reload, and evaluation gates. For LoRA, inspect actual matched modules, adapter settings, trainable count, frozen-base fingerprints, and active-adapter generation. Keep quantization and optional samplers outside this first proof.
+
+Completion evidence: separate results for full and LoRA modes on the exercised device. A single certified mode supports a limited native-training release; the complete Stage C full/LoRA deliverable requires evidence for both. Publish remaining device/profile limitations explicitly.
 
 ## 5. Stage D: optional backends after the core works
 
@@ -154,7 +191,7 @@ An OpenEnv or Gymnasium adapter is a later teaching exercise over the same core,
 
 ## 7. Implementation-time documentation and handoff
 
-When Stage A works, add the repository setup README with exact dependency setup, runnable CLI invocations, actual demo output, and common failures. Keep these design documents under `docs/` and mark decisions that changed. The present `docs/README.md` is a design index, not a setup guide for a package that does not yet exist.
+The root README already provides setup, scripted lessons, CPU preparation, rollout/evaluation commands, and common failures. Update it with `train` only when that command and a verified profile exist. Keep this index/roadmap and the historical evidence records distinct from runtime support claims.
 
 At each successful gate, save the resolved configuration, installed versions, model/tokenizer revisions where applicable, sandbox image identity, command, hardware, result, and known limitation. Finish with a short capability table separating model-free smoke, real CPU rollout, native training, optional vLLM, and custom harness.
 
@@ -164,15 +201,18 @@ Use relevant tests rather than broad repeated test runs. Model-free environment 
 
 | Item | Design decision / next action |
 |---|---|
-| Current scope | Stage A implemented; Stage B real model rollout is next |
+| Current scope | Stage A and CPU rollout/evaluator code implemented; close Stage B evidence, then execute C1–C7 |
 | Runtime architecture | Small local core; native TRL training adapter; manual eval harness |
 | Security profile | Functional JSON tasks; separate trusted assertions and contained candidate execution |
 | Patch scope | Existing allowed source files only initially; richer changes require a new tested profile |
 | CPU expectation | Measure real target inference; never promise quick full GRPO training |
-| Dependency versions | Stage A locked with uv; model/training profiles await their compatibility checks |
-| Target native tool support | Qwen3.5 family documentation is evidence; exact 0.8B/checkpoint/device gate remains |
+| Dependency versions | Base and CPU rollout locked; native TRL/PEFT/device profiles await installed compatibility checks |
+| Target native tool support | Genuine manual 0.8B source read validated; native parser/template, multiline edit and training gates remain |
 | Native hard budgets and side effects | Verify source behavior; reject history/state mismatch before training |
 | Native model-generation trace export | Establish supported export/correlation points without inventing callbacks |
+| Native infrastructure exceptions | Verify trusted failure latching and whole-group rejection when a tool loop converts exceptions to observations |
+| Hard native cancellation | Parent must release registered containers/private roots even if the training process is killed |
+| Checkpoint evaluation | Add explicit local full/LoRA content identities and loaders; keep the baseline evaluator profile fixed |
 | CPU vLLM | Optional eval capability, subject to checkpoint/hardware tests |
 | Mixed CPU generation / GPU training | Outside initial supported profiles; requires demonstrated synchronization and probability contract |
 | Scale and benchmark strength | Four tasks demonstrate plumbing and learning mechanics; larger independent task families needed for general claims |

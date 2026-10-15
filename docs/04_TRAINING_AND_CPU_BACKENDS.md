@@ -2,6 +2,8 @@
 
 Design draft dated **2026-10-14**. This document describes intended implementation and acceptance checks; it does not claim that packages, model loading, CPU throughput, or GRPO training have been tested in this repository. Official documentation and upstream source were reviewed on that date. References to moving `main` branches establish current documented behavior, not a dependency lock.
 
+Follow-up dated **2026-10-15**: CPU loading, generation, parser/read dispatch, and manual-controller code now have [Phase 2 evidence](PHASE_2_STATUS.md). The detailed remaining implementation is [Phase 3 native training](PHASE_3_NATIVE_TRAINING_DESIGN.md): resolve an installed native profile, prove failure/tensor/group admission, then perform and reload a real update. This older draft retains its conceptual guidance; its unmeasured pilot settings are superseded by explicit per-profile validation.
+
 Read [the architecture](ARCHITECTURE.md) and [environment integration](ENVIRONMENT_SUPPORT.md) first. The environment is the lesson: one task, one clean workspace, actions, observations, independent verification, then a terminal reward. Training adds a standard optimizer around that lesson.
 
 ## 1. Choose the smallest training path
