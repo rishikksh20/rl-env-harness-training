@@ -1,10 +1,15 @@
 # Environment support: core, harness, and TRL
 
-Status: design draft. Official documentation reviewed on **2026-10-14**; no installed TRL version has been tested in this repository. A release must replace the pending compatibility record with exact versions and actual results.
+Current model/harness commands and empirical limits are in [the training guide](TRAINING_GUIDE.md) and [Phase 4 status](PHASE_4_STATUS.md).
+
+Status: original conceptual guide, with current status pointers updated
+**2026-10-16**. Installed TRL 1.16.0 API/tokenizer and native fixture tests are
+recorded in [Phase 3 status](PHASE_3_STATUS.md). Target-model acceptance and the
+codebase-audit follow-up remain in [Phase 4](PHASE_4_COMPLETION_PLAN.md).
 
 The core, scripted commands and native TRL adapter are implemented. [Phase 3 status](PHASE_3_STATUS.md) records installed native fixture tests and remaining target-model gates; [Stage A status](PHASE_A_STATUS.md) retains the original environment validation.
 
-Implementation update, **2026-10-16**: `trl_env.py` and `trainer.py` implement the installed TRL 1.16.0 contract with public admission/loss hooks. The conceptual guidance below is historical; the [Phase 3 run guide](PHASE_3_STATUS.md) specifies the tested native batching/parser/call semantics and distinguishes them from the manual evaluator.
+Implementation update, **2026-10-16**: `src/coding_rl/training/adapter.py` and `src/coding_rl/training/trainer.py` implement the installed TRL 1.16.0 contract with public admission/loss hooks. The conceptual guidance below is historical; the [Phase 3 run guide](PHASE_3_STATUS.md) specifies the tested native batching/parser/call semantics and distinguishes them from the manual evaluator.
 
 ## 1. One environment core, one training adapter
 

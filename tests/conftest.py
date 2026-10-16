@@ -3,7 +3,7 @@ from dataclasses import replace
 import pytest
 
 from coding_rl import Config, make_environment
-from coding_rl.config import LoggingConfig
+from config import LoggingConfig
 
 
 @pytest.fixture

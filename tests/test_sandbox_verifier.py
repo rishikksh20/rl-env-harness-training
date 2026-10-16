@@ -7,10 +7,11 @@ from dataclasses import replace
 import pytest
 
 from coding_rl import make_environment, run_episode
-from coding_rl.errors import InfrastructureError
-from coding_rl.patches import make_diff
-from coding_rl.sandbox import ProcessResult, Sandbox, supervise
-from coding_rl.verifier import _json_value, _same, verify
+from environments.execution.sandbox import Sandbox
+from environments.patches import make_diff
+from environments.verifier import _json_value, _same, verify
+from utils.errors import InfrastructureError
+from utils.process import ProcessResult, supervise
 
 
 def test_supervisor_timeout_and_descendants(tmp_path):

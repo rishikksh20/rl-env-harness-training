@@ -77,16 +77,16 @@ For a hard generation timeout, terminate and join the inference worker, discard 
 
 | File | Intended work |
 |---|---|
-| `environment.py` | Fix pending cleanup on cached verdicts; expand stop reasons; classify trusted I/O failures without changing tools |
-| `config.py` | Add optional model, rollout, and evaluation records; preserve valid Phase 1 configurations |
-| `trace.py` | Explicit policy identity, generation/parse events, counters, failure/completion distinctions, schema versioning |
-| `harness.py` | Retain the scripted lesson; add a distinct model episode runner using public data only |
-| `cli.py` | Add rollout/evaluation interfaces and clear preflight/dependency diagnostics |
-| `tasks.py` / `verifier.py` | Expose a public task projection and record a grading-plan fingerprint |
-| New `models.py` | One tested Transformers loading/generation backend and inference-worker ownership |
-| New `inference_worker.py` | Trusted child process entry and bounded generation request loop |
-| New `protocol.py` | Schema conversion, checkpoint-specific parsing, typed validation, fixed dispatch |
-| New `evaluate.py` | Held-out attempt scheduling, per-task summaries, and metrics |
+| `src/environments/coding.py` | Fix pending cleanup on cached verdicts; expand stop reasons; classify trusted I/O failures without changing tools |
+| `src/config.py` | Add optional model, rollout, and evaluation records; preserve valid Phase 1 configurations |
+| `src/utils/trace.py` | Explicit policy identity, generation/parse events, counters, failure/completion distinctions, schema versioning |
+| `src/harnesses/scripted.py` | Retain the scripted lesson; add a distinct model episode runner using public data only |
+| `src/main.py` | Add rollout/evaluation interfaces and clear preflight/dependency diagnostics |
+| `src/tasks/catalog.py` / `src/environments/verifier.py` | Expose a public task projection and record a grading-plan fingerprint |
+| New `src/models/backend.py` | One tested Transformers loading/generation backend and inference-worker ownership |
+| New `src/models/worker.py` | Trusted child process entry and bounded generation request loop |
+| New `src/harnesses/protocol.py` | Schema conversion, checkpoint-specific parsing, typed validation, fixed dispatch |
+| New `src/coding_rl/rollout/evaluate.py` | Held-out attempt scheduling, per-task summaries, and metrics |
 
 Combine a new file when it would otherwise contain only a trivial wrapper. Use ordinary functions and typed records. A model abstraction becomes a protocol only when an actual alternate backend needs it; vLLM and external-agent infrastructure are deferred.
 

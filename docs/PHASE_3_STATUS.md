@@ -1,5 +1,10 @@
 # Phase 3 implementation and acceptance status
 
+For current commands and profiles use [the training guide](TRAINING_GUIDE.md)
+and [Phase 4 status](PHASE_4_STATUS.md). This file retains Phase 3's validation
+record; Phase 4 adds stronger evidence contracts, LFM, independent capacity
+checks, and external harnesses.
+
 Updated **2026-10-16**. The native CPU training path is implemented. Installed TRL
 tests exercise actual generation/tool-loop dispatch, rewards, tensors, backward,
 optimizer callbacks, and full/LoRA save/reload using tiny fixture models and
@@ -10,17 +15,22 @@ The detailed implementation plan was written first in
 [PHASE_3_IMPLEMENTATION_PLAN.md](PHASE_3_IMPLEMENTATION_PLAN.md). The acceptance
 criteria remain [the original design](PHASE_3_NATIVE_TRAINING_DESIGN.md).
 
+The subsequent [Phase 4 completion plan](PHASE_4_COMPLETION_PLAN.md) audits the
+delivered code and consolidates all remaining original-roadmap work, including
+confirmed prerequisite/trace gaps and the genuine model acceptance gates. This
+Phase 3 document retains its implementation-time validation record.
+
 ## Implementation
 
 | Component | Responsibility |
 |---|---|
-| `config.py` | Separate strict native budgets and Hub/full/LoRA policy sources |
-| `trl_env.py` | Exactly four typed tools, public train rows, fresh core episodes, latched failures |
-| `trainer.py` | Installed compatibility probe, native trainer construction, complete-group reward admission, actual tensor/probability audits, optimizer evidence and checkpoint coordination |
-| `training_worker.py` | One supervised model/optimizer process, RAM/deadline limits, exact owned-resource cleanup |
-| `checkpoints.py` | Staged saves, verified reload, complete file digests and atomic completion manifest |
-| `models.py`, `inference_worker.py` | Content-identified local full/LoRA evaluation using the pinned base tokenizer |
-| `evaluate.py` | Policy-independent evaluation profile, coverage/cost metrics, matching before/after comparisons |
+| `src/config.py` | Separate strict native budgets and Hub/full/LoRA policy sources |
+| `src/coding_rl/training/adapter.py` | Exactly four typed tools, public train rows, fresh core episodes, latched failures |
+| `src/coding_rl/training/trainer.py` | Installed compatibility probe, native trainer construction, complete-group reward admission, actual tensor/probability audits, optimizer evidence and checkpoint coordination |
+| `src/coding_rl/training/worker.py` | One supervised model/optimizer process, RAM/deadline limits, exact owned-resource cleanup |
+| `src/coding_rl/training/checkpoints.py` | Staged saves, verified reload, complete file digests and atomic completion manifest |
+| `src/models/backend.py`, `src/models/worker.py` | Content-identified local full/LoRA evaluation using the pinned base tokenizer |
+| `src/coding_rl/rollout/evaluate.py` | Policy-independent evaluation profile, coverage/cost metrics, matching before/after comparisons |
 
 The trainer specializes public `compute_loss` and `TrainerCallback` extension
 points and supplies a public reward function. It does not replace TRL generation,

@@ -1,0 +1,25 @@
+# External harness evaluation; use native training profile for gradient updates.
+model:
+  name: LiquidAI/LFM2.5-350M
+  revision: 9e6c6ccf47cd318696e137d381a7ded8fe4df09f
+  tokenizer_revision: 9e6c6ccf47cd318696e137d381a7ded8fe4df09f
+  cache_dir: outputs/model-cache
+  offline: true
+  threads: 4
+  profile: lfm2.5
+environment:
+  episode_seconds: 900
+rollout:
+  max_new_tokens: 256
+  episode_tokens: 768
+  context_tokens: 8192
+  observation_tokens: 256
+  generation_seconds: 300
+  do_sample: true
+  temperature: 0.7
+  top_p: 0.8
+evaluation:
+  split: eval
+  attempts_per_task: 4
+  report_path: outputs/opencode-lfm-eval.json
+seed: 42

@@ -1,6 +1,11 @@
 # Architecture and mental model
 
-Status: original architecture design. The Stage A core and Stage B CPU inference/controller code are implemented; training remains a future stage. See [Stage A status](PHASE_A_STATUS.md) and [Phase 2 validation status](PHASE_2_STATUS.md), and read this before the trainer plan.
+Current model/harness commands and empirical limits are in [the training guide](TRAINING_GUIDE.md) and [Phase 4 status](PHASE_4_STATUS.md).
+
+Status: original architecture design. The core, CPU inference/evaluator and native
+training implementation are present. [Phase 3 status](PHASE_3_STATUS.md) separates
+fixture validation from genuine target-model acceptance; [Phase 4](PHASE_4_COMPLETION_PLAN.md)
+consolidates the remaining work. Examples below remain conceptual where labeled.
 
 ## 1. A coding environment is a changing repository
 
@@ -144,27 +149,28 @@ The original [DeepSeekMath paper](https://arxiv.org/abs/2402.03300) introduces G
 
 Masking tool-output positions means they do not become actions to imitate. The model still learns to choose actions conditioned on those observations. A transcript re-tokenized later is not guaranteed to reproduce the exact sampled sequence, especially when chat templates rewrite prior turns. Preserve training data through native TRL, not through reconstructed JSONL.
 
-## 8. Minimal future file layout
+## 8. Source layout
 
-| Proposed file or directory | Why it exists |
+| File or directory | Why it exists |
 |---|---|
 | `pyproject.toml` | Package metadata and mode-specific optional dependencies |
 | `configs/default.yaml` | One source of operational settings; CLI applies explicit overrides |
-| `src/coding_rl/config.py` | Load, validate, and resolve mode-specific settings |
-| `src/coding_rl/tasks.py` | Load immutable fixture metadata and train/evaluation partitions |
-| `src/coding_rl/sandbox.py` | Workspace ownership and bounded Docker execution |
-| `src/coding_rl/environment.py` | Readable reset, tools, counters, freeze, and terminal reward lifecycle |
-| `src/coding_rl/verifier.py` | Rebuild the final candidate and run protected executable checks |
-| `src/coding_rl/trace.py` | Event schema, JSONL recording, artifact references |
-| `src/coding_rl/harness.py` | Scripted and Transformers episodes plus an optional custom-harness boundary |
-| `src/coding_rl/trl_env.py` | Narrow adapter exposing the four named tools and reserved lifecycle methods |
-| `src/coding_rl/trainer.py` | Translate validated config into the tested TRL contract |
-| `src/coding_rl/cli.py` | Small commands for demo, smoke, inspection, rollout, training, and evaluation |
-| `tasks/` | Public starters and protected authored grading material, kept separate in packaging |
+| `src/config.py` | Load, validate, and resolve mode-specific settings |
+| `src/tasks/catalog.py` | Load immutable fixture metadata and train/evaluation partitions |
+| `src/environments/execution/sandbox.py` | Workspace ownership and bounded Docker execution |
+| `src/environments/coding.py` | Readable reset, tools, counters, freeze, and terminal reward lifecycle |
+| `src/environments/verifier.py` | Rebuild the final candidate and run protected executable checks |
+| `src/utils/trace.py` | Event schema, JSONL recording, artifact references |
+| `src/harnesses/` | Scripted and external agent drivers plus the shared tool protocol |
+| `src/coding_rl/rollout/` | Transformers model episodes, diagnostics and evaluation |
+| `src/coding_rl/training/adapter.py` | Narrow adapter exposing the four named tools and reserved lifecycle methods |
+| `src/coding_rl/training/trainer.py` | Translate validated config into the tested TRL contract |
+| `src/main.py` | Small commands for demo, smoke, inspection, rollout, training, and evaluation |
+| `src/tasks/fixtures/` | Public starters and protected authored grading material, kept separate from candidate execution |
 | `tests/` | Environment, sandbox, adapter, and training acceptance checks |
 | `outputs/` | Traces, frozen submissions, metrics, manifests, and checkpoints |
 
-Merge a module when its contents are trivial. Avoid putting unrelated state transitions, model loading, and optimizer setup into one large class. The first file a learner opens should remain `environment.py`.
+Merge a module when its contents are trivial. Avoid putting unrelated state transitions, model loading, and optimizer setup into one large class. The first file a learner opens should remain `src/environments/coding.py`.
 
 ## 9. Extension points and limits
 

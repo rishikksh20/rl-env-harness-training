@@ -43,7 +43,7 @@ The JSON-callable verifier is deliberately narrower than arbitrary repository gr
 
 ## 4. Confirmed defect: cached verdict bypasses unfinished cleanup
 
-Location: [environment.py](../src/coding_rl/environment.py), `get_reward` and `cleanup`.
+Location: [coding.py](../src/environments/coding.py), `get_reward` and `cleanup`.
 
 The method stores a completed verdict and emits a reward before its final cleanup path. If cleanup then raises an infrastructure exception, the workspace can remain owned and live. A later call sees the cached verdict and returns immediately, without retrying cleanup.
 

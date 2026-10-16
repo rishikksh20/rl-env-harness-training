@@ -207,27 +207,36 @@ Expose only `list_files`, `read_file`, `apply_patch`, and `run_tests` initially.
 
 Include **3-5 tiny Python repository bug-fix tasks** that are executable offline (e.g. zero timeout handling, wrong boundary check, incorrect default parameter). Supply reproducible starting files, visible tests, and hidden regression tests. Include at least one task that fails and one that succeeds under a deterministic test harness. Ensure there is no solution leakage in prompts or tool observations.
 
-## Suggested repository layout
+## Repository layout
+
+The implemented module boundaries are documented in [docs/CODE_LAYOUT.md](docs/CODE_LAYOUT.md).
+Application entry/configuration live directly under `src`; RL code and shared
+infrastructure have dedicated packages.
 
 ```text
 coding-rl-lab/
 ├── pyproject.toml
-├── configs/default.yaml
-├── src/coding_rl/
-│   ├── config.py       # validated config
-│   ├── tasks.py        # task model + fixture loader
-│   ├── sandbox.py      # isolated workspaces + commands
-│   ├── environment.py  # stateful core env/reset/tools/reward
-│   ├── trl_env.py      # small environment_factory adapter
-│   ├── harness.py      # minimal/custom adapter
-│   ├── verifier.py     # independent RLVR test oracle
-│   ├── trace.py        # JSONL trajectories + logging
-│   ├── trainer.py      # thin TRL GRPO integration
-│   └── cli.py          # smoke/rollout/train/eval
-├── tasks/              # tiny fixture repositories + graders
-├── tests/              # unit/integration tests
-├── docs/ARCHITECTURE.md
-├── docs/ENVIRONMENT_SUPPORT.md
+├── configs/
+├── src/
+│   ├── main.py                     # CLI entry point
+│   ├── config.py                   # validated configuration
+│   ├── coding_rl/
+│   │   ├── training/               # native adapter, GRPO, checkpoints, supervision
+│   │   └── rollout/                # model episodes, evaluation, diagnostics
+│   ├── environments/
+│   │   ├── coding.py               # stateful four-tool environment
+│   │   ├── patches.py
+│   │   ├── verifier.py             # independent protected assertions
+│   │   └── execution/              # sandbox and standalone candidate worker
+│   ├── models/                     # backend, model profiles, inference worker
+│   ├── harnesses/                  # scripted, OpenCode/custom drivers, protocol
+│   ├── tasks/
+│   │   ├── catalog.py
+│   │   ├── dataset.py
+│   │   └── fixtures/               # immutable starters and protected grading data
+│   └── utils/                      # shared processes, IPC, records, paths and traces
+├── tests/
+├── docs/
 └── README.md
 ```
 

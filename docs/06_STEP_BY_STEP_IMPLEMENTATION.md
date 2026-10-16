@@ -2,7 +2,13 @@
 
 Status updated **2026-10-16**: Stage A, CPU rollout/evaluation, and the native training implementation are present. Stage C has installed native fixture tensor/update/full/LoRA reload tests; target-model development, baseline, informative update and held-out comparison remain acceptance gates. Stage D remains deferred. See [Phase 3 status](PHASE_3_STATUS.md) and the original [native training design](PHASE_3_NATIVE_TRAINING_DESIGN.md).
 
-This is the ordered implementation roadmap. The status documents record executed evidence; future milestones below do not imply installed dependencies or completed runs.
+The current codebase audit and all remaining work are consolidated in
+[Phase 4: completion plan](PHASE_4_COMPLETION_PLAN.md), including report/trace
+integrity fixes, unrun Stage B/C acceptance, and the original optional Stage D
+extensions. Phase 4 preserves the A–D structure below; it does not rename Stage D
+or imply the remaining gates have passed.
+
+This is the original ordered implementation roadmap. The status documents record executed evidence; future milestones below do not imply installed dependencies or completed runs.
 
 ## 1. Delivery sequence
 
@@ -19,10 +25,14 @@ Do not build optional adapters before the environment lesson works. Within each 
 |---|---|---|
 | A: environment and scripted lesson | Implemented; original Docker results recorded; cleanup/cache correction tested | Preserve as the shared core |
 | B: CPU loading/parser/read | Genuine target read validated and saved | Reuse the pinned profile and tokenizer EOS fix |
-| B: manual harness/evaluator | Implemented; recorded suite has 112 passes and eight Docker skips | Close the real edit/test/grading and baseline gates |
-| C: native adapter, grouping and tensors | Unimplemented | Resolve an installed native profile, then prove admission invariants |
-| C: optimizer, checkpoint and comparison | Unimplemented | Demonstrate a real informative update and reload/evaluation |
-| D: custom/vLLM backends | Deferred | Start only after the native path is established |
+| B: manual harness/evaluator | Implemented; genuine development/baseline evidence open | Phase 4 P4-01/P4-05/P4-09 |
+| C: native adapter, grouping and tensors | Implemented and fixture-tested; audit found correlation/error/reporting gaps | Phase 4 P4-02/P4-03/P4-04/P4-06 |
+| C: optimizer, checkpoint and comparison | Full/LoRA fixture updates/reloads tested; real-model proof/comparison open | Phase 4 P4-01/P4-06/P4-07/P4-08 |
+| D: custom/vLLM backends | Deferred and optional | Phase 4 P4-11/P4-12 after native acceptance |
+
+The retained Phase 3 combined suite reports 163 passes, including native and Docker
+checks. It does not replace the outstanding genuine target-model gates. The
+Phase 4 planning review did not rerun that suite.
 
 ## 2. Stage A: environment lesson without a model
 
@@ -98,7 +108,11 @@ Completion evidence: all per-attempt artifacts, planned/started/valid/incomplete
 
 ## 4. Stage C: native TRL and genuine updates
 
-The detailed flow, proposed profiles, interfaces, file ownership, failure policies, and acceptance evidence are in [PHASE_3_NATIVE_TRAINING_DESIGN.md](PHASE_3_NATIVE_TRAINING_DESIGN.md). The sequence below is the coding order.
+The detailed flow, profiles, interfaces, ownership and acceptance requirements are
+in [PHASE_3_NATIVE_TRAINING_DESIGN.md](PHASE_3_NATIVE_TRAINING_DESIGN.md). The code
+and fixture results are in [Phase 3 status](PHASE_3_STATUS.md); the remaining
+implementation corrections and genuine acceptance runs are assigned in
+[Phase 4](PHASE_4_COMPLETION_PLAN.md). C1–C7 below retain their original gate definitions.
 
 ### C1. Resolve a native dependency and hardware profile
 
@@ -108,7 +122,7 @@ Completion evidence: reproducible optional dependency graph, usable native envir
 
 ### C2. Implement the thin adapter and public training rows
 
-Add `trl_env.py` with a no-argument factory and exactly four public tool methods plus reserved `reset`/`get_reward`. Keep core, run owner, cleanup, and inspection private. Construct train-only rows from public projections, with system instructions and editable paths once; dataset-driven reset returns no duplicate prompt. Reuse strict argument validation and bounded observations without embedding the manual rollout loop in TRL.
+Add `src/coding_rl/training/adapter.py` with a no-argument factory and exactly four public tool methods plus reserved `reset`/`get_reward`. Keep core, run owner, cleanup, and inspection private. Construct train-only rows from public projections, with system instructions and editable paths once; dataset-driven reset returns no duplicate prompt. Reuse strict argument validation and bounded observations without embedding the manual rollout loop in TRL.
 
 Completion evidence: exact native tool discovery/schemas, held-out ID rejection, no grading/reference metadata in prompts, genuine native tool execution, stable policy identity, and pristine independent resets when adapters are reused.
 
@@ -191,7 +205,11 @@ An OpenEnv or Gymnasium adapter is a later teaching exercise over the same core,
 
 ## 7. Implementation-time documentation and handoff
 
-The root README already provides setup, scripted lessons, CPU preparation, rollout/evaluation commands, and common failures. Update it with `train` only when that command and a verified profile exist. Keep this index/roadmap and the historical evidence records distinct from runtime support claims.
+The root README provides setup, scripted lessons, CPU preparation, rollout/evaluation
+and experimental native training commands. It links to fixture-tested status and
+does not claim a certified target-model profile. Phase 4 P4-10 completes measured
+profiles, current transcripts and the release capability table. Keep historical
+evidence distinct from current runtime support claims.
 
 At each successful gate, save the resolved configuration, installed versions, model/tokenizer revisions where applicable, sandbox image identity, command, hardware, result, and known limitation. Finish with a short capability table separating model-free smoke, real CPU rollout, native training, optional vLLM, and custom harness.
 
@@ -201,18 +219,18 @@ Use relevant tests rather than broad repeated test runs. Model-free environment 
 
 | Item | Design decision / next action |
 |---|---|
-| Current scope | Stage A and CPU rollout/evaluator code implemented; close Stage B evidence, then execute C1–C7 |
+| Current scope | Stage A/B/C implementation exists; Phase 4 closes audit findings and genuine Stage B/C evidence before optional Stage D |
 | Runtime architecture | Small local core; native TRL training adapter; manual eval harness |
 | Security profile | Functional JSON tasks; separate trusted assertions and contained candidate execution |
 | Patch scope | Existing allowed source files only initially; richer changes require a new tested profile |
 | CPU expectation | Measure real target inference; never promise quick full GRPO training |
-| Dependency versions | Base and CPU rollout locked; native TRL/PEFT/device profiles await installed compatibility checks |
-| Target native tool support | Genuine manual 0.8B source read validated; native parser/template, multiline edit and training gates remain |
-| Native hard budgets and side effects | Verify source behavior; reject history/state mismatch before training |
-| Native model-generation trace export | Establish supported export/correlation points without inventing callbacks |
-| Native infrastructure exceptions | Verify trusted failure latching and whole-group rejection when a tool loop converts exceptions to observations |
-| Hard native cancellation | Parent must release registered containers/private roots even if the training process is killed |
-| Checkpoint evaluation | Add explicit local full/LoRA content identities and loaders; keep the baseline evaluator profile fixed |
+| Dependency versions | Base/rollout and CPU native/LoRA profiles locked; installed API/tokenizer checks recorded; target-model feasibility and other devices remain open |
+| Target native tool support | Manual target read and native protocol/fixture tests exist; genuine native multiline edit/update proof remains |
+| Native hard budgets and side effects | Sequential-call native semantics and cutoff rejection implemented; Phase 4 completes normal-error handling and genuine boundary evidence |
+| Native model-generation trace export | Admitted native IDs/tensors retained; Phase 4 adds initial event identity, rejected-collection evidence and stop/correlation detail |
+| Native infrastructure exceptions | Failure latching/group rejection fixture-tested; extend actual lifecycle and healthy-error classification in Phase 4 |
+| Hard native cancellation | Registered names/private roots and parent cleanup implemented; actual-stage interruption and committed-checkpoint recovery coverage remain |
+| Checkpoint evaluation | Local full/LoRA identities/loaders implemented; stronger evidence schema and genuine matched comparison remain |
 | CPU vLLM | Optional eval capability, subject to checkpoint/hardware tests |
 | Mixed CPU generation / GPU training | Outside initial supported profiles; requires demonstrated synchronization and probability contract |
 | Scale and benchmark strength | Four tasks demonstrate plumbing and learning mechanics; larger independent task families needed for general claims |

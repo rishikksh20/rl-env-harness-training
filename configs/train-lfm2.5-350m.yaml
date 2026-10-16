@@ -1,0 +1,46 @@
+# CPU FP32 native GRPO; see docs/TRAINING_GUIDE.md.
+model:
+  name: LiquidAI/LFM2.5-350M
+  revision: 9e6c6ccf47cd318696e137d381a7ded8fe4df09f
+  tokenizer_revision: 9e6c6ccf47cd318696e137d381a7ded8fe4df09f
+  cache_dir: outputs/model-cache
+  offline: true
+  threads: 4
+  profile: lfm2.5
+environment:
+  episode_seconds: 900
+rollout:
+  max_new_tokens: 256
+  episode_tokens: 768
+  context_tokens: 2048
+  observation_tokens: 256
+  generation_seconds: 300
+  do_sample: true
+  temperature: 0.7
+  top_p: 0.8
+evaluation:
+  split: eval
+  attempts_per_task: 4
+  report_path: outputs/lfm-baseline.json
+training:
+  mode: lora
+  output_dir: outputs/lfm-training
+  max_groups: 8
+  group_size: 4
+  completion_tokens: 384
+  context_tokens: 1536
+  observation_tokens: 128
+  tool_iterations: 6
+  memory_limit_mb: 12288
+  wall_seconds: 3600
+  learning_rate: 1.0e-06
+  temperature: 0.7
+  top_p: 0.8
+  lora_rank: 8
+  lora_alpha: 16
+  lora_targets:
+  - q_proj
+  - v_proj
+  baseline_report: outputs/lfm-baseline.json
+  development_outcome: null
+seed: 42

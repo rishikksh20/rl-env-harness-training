@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from coding_rl.training_worker import _stop, cleanup_resources
+from coding_rl.training.worker import _stop, cleanup_resources
 
 
 def ownership_child(root, stage):
@@ -60,9 +60,9 @@ def test_forced_child_termination_releases_private_state(tmp_path, stage):
 def test_supervisor_deadline_keeps_interrupted_checkpoint_unusable(config, tmp_path, monkeypatch):
     from dataclasses import replace
 
-    from coding_rl import trainer as trainer_module
-    from coding_rl import training_worker as module
-    from coding_rl.config import ModelConfig, TrainingConfig
+    from coding_rl.training import trainer as trainer_module
+    from coding_rl.training import worker as module
+    from config import ModelConfig, TrainingConfig
 
     pytest.importorskip("psutil")
     monkeypatch.setattr(trainer_module, "dependency_report", lambda mode: {})
@@ -83,8 +83,8 @@ def test_supervisor_deadline_keeps_interrupted_checkpoint_unusable(config, tmp_p
 
 
 def docker_child(root, run_id, image):
-    from coding_rl.config import SandboxConfig
-    from coding_rl.sandbox import Sandbox, materialize
+    from config import SandboxConfig
+    from environments.execution.sandbox import Sandbox, materialize
 
     root = Path(root)
     sandbox = Sandbox(SandboxConfig(image=image), resource_root=root / "private", run_id=run_id)

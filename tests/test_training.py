@@ -6,14 +6,14 @@ from dataclasses import replace
 
 import pytest
 
-from coding_rl.config import ModelConfig, TrainingConfig, load_config
-from coding_rl.environment import TOOLS, tool_schemas
-from coding_rl.errors import InfrastructureError
-from coding_rl.patches import make_diff
-from coding_rl.tasks import TaskCatalog
-from coding_rl.trainer import RunOwner, native_arguments, tool_methods
-from coding_rl.training_worker import cleanup_resources
-from coding_rl.trl_env import NativeEnvironment, environment_factory, training_rows
+from coding_rl.training.adapter import NativeEnvironment, environment_factory, training_rows
+from coding_rl.training.trainer import RunOwner, native_arguments, tool_methods
+from coding_rl.training.worker import cleanup_resources
+from config import ModelConfig, TrainingConfig, load_config
+from environments.coding import TOOLS, tool_schemas
+from environments.patches import make_diff
+from tasks.catalog import TaskCatalog
+from utils.errors import InfrastructureError
 
 
 class CharacterPresenter:
@@ -231,7 +231,7 @@ def test_parent_cleanup_is_limited_to_pre_registered_resources(tmp_path, monkeyp
         commands.append(command)
         return type("Result", (), {"returncode": 0})()
 
-    monkeypatch.setattr("coding_rl.training_worker.subprocess.run", remove)
+    monkeypatch.setattr("coding_rl.training.worker.subprocess.run", remove)
     cleanup_resources(run, run_id)
     assert commands == [["docker", "rm", "--force", "coding-rl-" + run_id + "-" + "b" * 32]]
     assert not private.exists() and not staging.exists()
@@ -241,13 +241,37 @@ def test_parent_cleanup_is_limited_to_pre_registered_resources(tmp_path, monkeyp
 def test_parent_cleanup_refuses_foreign_container_names(tmp_path):
     private = tmp_path / "private"
     private.mkdir()
-    (private / "containers.jsonl").write_text('"unrelated-container"\n')
-    with pytest.raises(InfrastructureError, match="registry"):
+    for content in ('"unrelated-container"\n', "invalid-json\n"):
+        (private / "containers.jsonl").write_text(content)
+        with pytest.raises(InfrastructureError, match="registry"):
+            cleanup_resources(tmp_path, "a" * 32)
+
+
+def test_cleanup_continues_after_docker_control_failure_and_keeps_retry_registry(
+    tmp_path, monkeypatch
+):
+    private = tmp_path / "private"
+    private.mkdir()
+    name = "coding-rl-" + "a" * 32 + "-" + "b" * 32
+    journal = private / "containers.jsonl"
+    journal.write_text(json.dumps(name) + "\n")
+    (private / "episode").mkdir()
+    (tmp_path / "checkpoints" / ".checkpoint-partial").mkdir(parents=True)
+    monkeypatch.setattr(
+        "coding_rl.training.worker.subprocess.run",
+        lambda *a, **k: type(
+            "Result", (), {"returncode": 1, "stderr": "Docker daemon unavailable"}
+        )(),
+    )
+    with pytest.raises(InfrastructureError, match="cleanup incomplete"):
         cleanup_resources(tmp_path, "a" * 32)
+    assert journal.exists()
+    assert not (private / "episode").exists()
+    assert not list((tmp_path / "checkpoints").glob(".checkpoint-*"))
 
 
 def test_training_requires_real_baseline_and_development_evidence(native_setup, tmp_path):
-    from coding_rl.trainer import validate_prerequisites
+    from coding_rl.training.trainer import validate_prerequisites
 
     config, _, _ = native_setup
     with pytest.raises(InfrastructureError, match="B-close"):

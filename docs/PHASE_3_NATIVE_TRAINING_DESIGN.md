@@ -60,7 +60,7 @@ Use FP32 for the first correctness probe. CPU full training remains an explicit 
 
 ## 4. Native adapter and public dataset
 
-Create `trl_env.py` with a no-argument factory closing over validated configuration, the catalog, and the trusted run owner. Every produced adapter owns one core; resets allocate new episode IDs/workspaces even if TRL reuses an adapter object.
+Create `src/coding_rl/training/adapter.py` with a no-argument factory closing over validated configuration, the catalog, and the trusted run owner. Every produced adapter owns one core; resets allocate new episode IDs/workspaces even if TRL reuses an adapter object.
 
 | Adapter member | Contract |
 |---|---|
@@ -166,7 +166,7 @@ Introduce explicit policy source records: pinned Hub snapshot, local full checkp
 
 Save checkpoint kind, parent/base identity, source-code/config/dependency fingerprints, training/global step, tokenizer/EOS settings, native template hash, task/verifier/image identities, weight-file digests, and completed update evidence. Write a temporary checkpoint and publish its completion manifest only after files are closed, verified, and reloadable. Interrupted saves remain unusable. Resume, if exposed, must validate optimizer/scheduler/random state and collect fresh rollouts under the restored policy; it is distinct from loading weights for evaluation.
 
-Extend `models.py` and the inference-worker loading path so `eval` can load both trained artifact kinds offline and in inference mode. Compare deterministic reload outputs/logits against the saved policy within a declared tolerance. Keep the fixed evaluation tokenizer/template and sampling profile for both baseline and trained policy; do not accidentally change evaluation behavior by adopting a training-patched template saved with the checkpoint.
+Extend `src/models/backend.py` and the inference-worker loading path so `eval` can load both trained artifact kinds offline and in inference mode. Compare deterministic reload outputs/logits against the saved policy within a declared tolerance. Keep the fixed evaluation tokenizer/template and sampling profile for both baseline and trained policy; do not accidentally change evaluation behavior by adopting a training-patched template saved with the checkpoint.
 
 Then run the held-out evaluator with the same partition, seeds, sandbox, grader, limits, and denominator as B-close. Report before/after pass rates, valid coverage, infrastructure exclusions, per-task verdicts, and resource costs even when there is no improvement. One held-out family still measures the integration rather than broad generalization.
 
@@ -175,20 +175,20 @@ Then run the held-out evaluator with the same partition, seeds, sandbox, grader,
 | File | Proposed change |
 |---|---|
 | `pyproject.toml`, `uv.lock` | Optional training/LoRA profiles and CPU/CUDA source rules after compatibility resolution |
-| `config.py` | Distinct validated training/native budgets and policy-source records; keep existing configs valid |
-| New `trl_env.py` | Narrow adapter, no-argument factory, public dataset construction, trusted failure state |
-| New `trainer.py` | Native trainer setup, supported group admission/audits, run result, and checkpoint coordination |
-| New `training_worker.py` | Clean supervised entry for native model/optimizer ownership; no second inference policy |
-| New `checkpoints.py` | Full/LoRA manifests, content identity, verified commit/reload metadata |
-| `environment.py`, `sandbox.py` | Optional run-owned temporary roots and registered candidate-worker cleanup for hard cancellation |
-| `protocol.py`, `rollout.py` | Share pure validation/presentation utilities when needed; retain the manual episode owner |
-| `models.py`, `inference_worker.py` | Explicit local full/LoRA inference loading with correct identity |
-| `tasks.py`, `trace.py` | Train-only public rows; native group/policy correlation and supported generation/tensor artifact references |
-| `evaluate.py` | Comparable baseline/checkpoint reports and profile-match checks |
-| `cli.py`, future `configs/train-*.yaml` | Add `train` only after admission checks; explicit mode/device and actionable unsupported-profile diagnostics |
+| `src/config.py` | Distinct validated training/native budgets and policy-source records; keep existing configs valid |
+| New `src/coding_rl/training/adapter.py` | Narrow adapter, no-argument factory, public dataset construction, trusted failure state |
+| New `src/coding_rl/training/trainer.py` | Native trainer setup, supported group admission/audits, run result, and checkpoint coordination |
+| New `src/coding_rl/training/worker.py` | Clean supervised entry for native model/optimizer ownership; no second inference policy |
+| New `src/coding_rl/training/checkpoints.py` | Full/LoRA manifests, content identity, verified commit/reload metadata |
+| `src/environments/coding.py`, `src/environments/execution/sandbox.py` | Optional run-owned temporary roots and registered candidate-worker cleanup for hard cancellation |
+| `src/harnesses/protocol.py`, `src/coding_rl/rollout/episode.py` | Share pure validation/presentation utilities when needed; retain the manual episode owner |
+| `src/models/backend.py`, `src/models/worker.py` | Explicit local full/LoRA inference loading with correct identity |
+| `src/tasks/catalog.py`, `src/utils/trace.py` | Train-only public rows; native group/policy correlation and supported generation/tensor artifact references |
+| `src/coding_rl/rollout/evaluate.py` | Comparable baseline/checkpoint reports and profile-match checks |
+| `src/main.py`, future `configs/train-*.yaml` | Add `train` only after admission checks; explicit mode/device and actionable unsupported-profile diagnostics |
 | New training tests | Adapter/tool set, native integration, tensor/group failures, hard cancellation, update proof, reload and comparison |
 
-Keep audit helpers within `trainer.py` until a separate module materially improves readability. Return typed `GroupOutcome`, `TrainingOutcome`, and checkpoint records; a small amount of explicit ownership state is enough. Preserve model-free imports and Docker's no-extra worker install.
+Keep audit helpers within `src/coding_rl/training/trainer.py` until a separate module materially improves readability. Return typed `GroupOutcome`, `TrainingOutcome`, and checkpoint records; a small amount of explicit ownership state is enough. Preserve model-free imports and Docker's no-extra worker install.
 
 Proposed future invocation, after the profile exists: `uv run --extra train-cpu coding-rl train --config configs/train-cpu.yaml`. Neither this command nor those files are implemented by this design. Device overrides must not bypass the selected dependency/hardware gate.
 

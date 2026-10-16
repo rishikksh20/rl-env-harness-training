@@ -4,6 +4,6 @@ COPY --from=uv /uv /usr/local/bin/uv
 WORKDIR /opt/lab
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project --no-editable
-COPY src/coding_rl/worker.py /opt/worker.py
+COPY src/environments/execution/worker.py /opt/worker.py
 USER 65534:65534
 WORKDIR /workspace

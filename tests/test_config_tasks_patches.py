@@ -6,10 +6,10 @@ from pathlib import Path
 import pytest
 
 from coding_rl import TaskCatalog, load_config
-from coding_rl.config import EnvironmentConfig, SandboxConfig
-from coding_rl.environment import CodingEnvironment, tool_schemas
-from coding_rl.errors import ActionError
-from coding_rl.patches import apply_diff, make_diff
+from config import EnvironmentConfig, SandboxConfig
+from environments.coding import CodingEnvironment, tool_schemas
+from environments.patches import apply_diff, make_diff
+from utils.errors import ActionError
 
 
 @pytest.mark.parametrize(
@@ -66,7 +66,7 @@ def test_only_allowed_tool_schemas_match_actual_methods():
 
 
 def test_fixture_hash_validation(tmp_path):
-    source = Path(__file__).parents[1] / "src/coding_rl/fixtures"
+    source = Path(__file__).parents[1] / "src/tasks/fixtures"
     fixtures = tmp_path / "fixtures"
     shutil.copytree(source, fixtures)
     (fixtures / "zero-timeout/starter/timeout.py").write_text("tampered\n")

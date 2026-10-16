@@ -18,8 +18,8 @@ pytestmark = [
 @pytest.fixture(scope="module")
 def tokenizer(tmp_path_factory):
     pytest.importorskip("trl")
-    from coding_rl.config import load_config
-    from coding_rl.trainer import compatibility_probe
+    from coding_rl.training.trainer import compatibility_probe
+    from config import load_config
 
     config = load_config("configs/train-cpu.yaml")
     directory = tmp_path_factory.mktemp("compatibility")
@@ -63,9 +63,9 @@ def make_tiny_model(tokenizer):
 
 
 def setup_native(config, tmp_path, tokenizer, *, groups=1, completion_tokens=512, mode="full"):
-    from coding_rl.config import ModelConfig, TrainingConfig
-    from coding_rl.tasks import TaskCatalog
-    from coding_rl.trainer import RunOwner, build_native_trainer
+    from coding_rl.training.trainer import RunOwner, build_native_trainer
+    from config import ModelConfig, TrainingConfig
+    from tasks.catalog import TaskCatalog
 
     config = replace(
         config,
@@ -89,7 +89,7 @@ def setup_native(config, tmp_path, tokenizer, *, groups=1, completion_tokens=512
 def scripted_generation(tokenizer, owner, *, mode="mixed", cutoff=False):
     import torch
 
-    from coding_rl.patches import make_diff
+    from environments.patches import make_diff
 
     calls = []
 
@@ -116,6 +116,12 @@ def scripted_generation(tokenizer, owner, *, mode="mixed", cutoff=False):
                     + patch
                     + "\n</parameter>\n</function>\n</tool_call><|im_end|>"
                 )
+            if owner.config.model.profile == "lfm2.5":
+                first = (
+                    "<|tool_call_start|>[apply_patch(patch="
+                    + repr(patch)
+                    + ")]<|tool_call_end|><|im_end|>"
+                )
             outputs = [first if index < 2 else "Done.<|im_end|>" for index in range(4)]
         else:
             outputs = ["Done.<|im_end|>" for _ in input_ids]
@@ -133,7 +139,7 @@ def scripted_generation(tokenizer, owner, *, mode="mixed", cutoff=False):
 
 
 def test_native_parser_and_actual_tensor_masks(tokenizer, config, tmp_path, monkeypatch):
-    from coding_rl.trainer import parameter_digest
+    from coding_rl.training.trainer import parameter_digest
 
     owner, model, trainer = setup_native(config, tmp_path, tokenizer)
     generation, calls = scripted_generation(tokenizer, owner)
@@ -156,7 +162,7 @@ def test_native_parser_and_actual_tensor_masks(tokenizer, config, tmp_path, monk
 def test_native_callbacks_observe_real_optimizer_and_updated_collection(
     tokenizer, config, tmp_path, monkeypatch
 ):
-    from coding_rl import trainer as module
+    from coding_rl.training import trainer as module
 
     owner, model, trainer = setup_native(config, tmp_path, tokenizer, groups=2)
     generation, calls = scripted_generation(tokenizer, owner)
@@ -181,8 +187,8 @@ def test_native_callbacks_observe_real_optimizer_and_updated_collection(
 def test_native_swallowed_exception_aborts_before_backward(
     tokenizer, config, tmp_path, monkeypatch
 ):
-    from coding_rl.errors import InfrastructureError
-    from coding_rl.trainer import parameter_digest
+    from coding_rl.training.trainer import parameter_digest
+    from utils.errors import InfrastructureError
 
     owner, model, trainer = setup_native(config, tmp_path, tokenizer)
     generation, _ = scripted_generation(tokenizer, owner, mode="tests")
@@ -191,7 +197,7 @@ def test_native_swallowed_exception_aborts_before_backward(
     def outage(*args, **kwargs):
         raise InfrastructureError("simulated infrastructure fault")
 
-    monkeypatch.setattr("coding_rl.sandbox.Sandbox.visible_tests", outage)
+    monkeypatch.setattr("environments.execution.sandbox.Sandbox.visible_tests", outage)
     before = parameter_digest(model, frozen=False)
     try:
         with pytest.raises(InfrastructureError, match="latched"):
@@ -206,7 +212,7 @@ def test_native_swallowed_exception_aborts_before_backward(
 def test_boundary_patch_effect_without_observation_rejects_whole_group(
     tokenizer, config, tmp_path, monkeypatch
 ):
-    from coding_rl.errors import InfrastructureError
+    from utils.errors import InfrastructureError
 
     owner, model, trainer = setup_native(config, tmp_path, tokenizer, completion_tokens=160)
     generation, _ = scripted_generation(tokenizer, owner, cutoff=True)
@@ -222,7 +228,7 @@ def test_boundary_patch_effect_without_observation_rejects_whole_group(
 
 
 def test_corrupt_actual_mask_cannot_enter_native_loss(tokenizer, config, tmp_path, monkeypatch):
-    from coding_rl.errors import InfrastructureError
+    from utils.errors import InfrastructureError
 
     owner, model, trainer = setup_native(config, tmp_path, tokenizer)
     generation, _ = scripted_generation(tokenizer, owner)
@@ -253,8 +259,8 @@ def test_native_update_checkpoint_and_inference_reload(
     import torch
     from transformers import Qwen3_5ForCausalLM
 
-    from coding_rl import trainer as module
-    from coding_rl.inference_worker import load_policy
+    from coding_rl.training import trainer as module
+    from models.worker import load_policy
 
     owner, base_model, trainer = setup_native(config, tmp_path, tokenizer, mode=mode)
     actual_generate = base_model.generate
@@ -287,10 +293,20 @@ def test_native_update_checkpoint_and_inference_reload(
         "versions": module.dependency_report(mode),
         "native_template_sha256": digest,
         "original_template_sha256": tokenizer._evaluation_template_sha256,
+        "response_template_sha256": module.digest_record(tokenizer.response_template),
+        "trainable_parameters": {
+            name: p.numel() for name, p in trainer.model.named_parameters() if p.requires_grad
+        },
     }
     checkpoints = []
     trainer.add_callback(
-        module.update_callback(trainer, owner, report, {"fixture": True}, checkpoints)
+        module.update_callback(
+            trainer,
+            owner,
+            report,
+            {"baseline_sha256": "a" * 64, "development_sha256": "b" * 64},
+            checkpoints,
+        )
     )
     try:
         trainer.train()
@@ -306,7 +322,7 @@ def test_native_update_checkpoint_and_inference_reload(
             actual = loaded(input_ids=ids, use_cache=False).logits
         torch.testing.assert_close(actual, expected, atol=1e-5, rtol=1e-5)
         if mode == "full":
-            from coding_rl.models import TransformersBackend
+            from models.backend import TransformersBackend
 
             backend = TransformersBackend(saved)
             try:
@@ -327,8 +343,8 @@ def test_recorded_genuine_read_parses_with_selected_native_template(tokenizer):
 
     from trl.chat_template_utils import parse_response
 
-    from coding_rl.trainer import tool_methods
-    from coding_rl.trl_env import NativeEnvironment
+    from coding_rl.training.adapter import NativeEnvironment
+    from coding_rl.training.trainer import tool_methods
 
     evidence = json.loads(Path("docs/evidence/phase2-cpu-read.json").read_text())
     methods = tool_methods(NativeEnvironment.__new__(NativeEnvironment))
@@ -352,7 +368,7 @@ def test_recorded_genuine_read_parses_with_selected_native_template(tokenizer):
 def test_native_multicall_profile_executes_sequentially_and_reports_equal_rewards(
     tokenizer, config, tmp_path, monkeypatch
 ):
-    from coding_rl.trainer import parameter_digest
+    from coding_rl.training.trainer import parameter_digest
 
     owner, model, trainer = setup_native(config, tmp_path, tokenizer)
     generation, _ = scripted_generation(tokenizer, owner, mode="multi")
@@ -364,5 +380,180 @@ def test_native_multicall_profile_executes_sequentially_and_reports_equal_reward
         assert not owner.pending.informative
         assert all(attempt.reward == 0.0 for attempt in owner.pending.attempts)
         assert parameter_digest(model, frozen=False) == before
+    finally:
+        owner.cleanup()
+
+
+def test_lfm_native_parser_masks_and_optimizer(config, tmp_path, monkeypatch):
+    import torch
+    from transformers import Lfm2Config, Lfm2ForCausalLM
+
+    from coding_rl.training.trainer import (
+        RunOwner,
+        build_native_trainer,
+        compatibility_probe,
+        parameter_digest,
+    )
+    from config import load_config
+    from tasks.catalog import TaskCatalog
+
+    profile = load_config("configs/train-lfm2.5-350m.yaml")
+    try:
+        _, tokens = compatibility_probe(profile, tmp_path)
+    except OSError as exc:
+        pytest.skip(f"Prepare pinned LFM tokenizer with model-fetch: {exc}")
+    config = replace(
+        config, model=profile.model, training=replace(profile.training, mode="full", max_groups=1)
+    )
+    torch.set_num_threads(2)
+    torch.manual_seed(42)
+    model = Lfm2ForCausalLM(
+        Lfm2Config(
+            vocab_size=len(tokens),
+            hidden_size=8,
+            intermediate_size=16,
+            num_hidden_layers=2,
+            num_attention_heads=1,
+            num_key_value_heads=1,
+            layer_types=["conv", "full_attention"],
+            block_auto_adjust_ff_dim=False,
+            block_multiple_of=1,
+        )
+    )
+    model.generation_config.eos_token_id = tokens.eos_token_id
+    model.generation_config.pad_token_id = tokens.pad_token_id
+    owner = RunOwner(config, "a" * 32, tmp_path)
+    trainer = build_native_trainer(model, tokens, owner, TaskCatalog())
+    generation, _ = scripted_generation(tokens, owner)
+    monkeypatch.setattr(model, "generate", generation)
+    before = parameter_digest(model, frozen=False)
+    try:
+        trainer.train()
+        assert owner.tensor_checked and owner.probability_checked and owner.pending.informative
+        assert parameter_digest(model, frozen=False) != before
+    finally:
+        owner.cleanup()
+
+
+@pytest.mark.parametrize("name", ["missing_tool", "read_file"])
+def test_native_predispatch_errors_are_healthy_observations(
+    tokenizer, config, tmp_path, monkeypatch, name
+):
+    import torch
+
+    owner, model, trainer = setup_native(config, tmp_path, tokenizer)
+
+    def generate(input_ids, **kwargs):
+        text = (
+            f"<tool_call>\n<function={name}>\n</function>\n</tool_call><|im_end|>"
+            if len(input_ids) == 4
+            else "Done.<|im_end|>"
+        )
+        # All four positions call once. The second generation still has four rows.
+        if getattr(generate, "called", False):
+            text = "Done.<|im_end|>"
+        generate.called = True
+        ids = tokenizer.encode(text, add_special_tokens=False)
+        return torch.cat([input_ids, torch.tensor([ids] * len(input_ids))], dim=1)
+
+    monkeypatch.setattr(model, "generate", generate)
+    try:
+        trainer.train()
+        assert owner.tensor_checked and owner.probability_checked
+        assert all(core.calls == 0 for core in owner.cores)
+        assert all(a.reward == 0 for a in owner.pending.attempts)
+    finally:
+        owner.cleanup()
+
+
+@pytest.mark.parametrize("stage", ["generation", "visible", "grading"])
+def test_interrupt_actual_native_boundaries_before_optimizer(
+    tokenizer, config, tmp_path, monkeypatch, stage
+):
+    from environments.execution.sandbox import Sandbox
+    from utils.errors import InfrastructureError
+
+    owner, model, trainer = setup_native(config, tmp_path, tokenizer)
+    generation, _ = scripted_generation(
+        tokenizer, owner, mode="tests" if stage == "visible" else "mixed"
+    )
+
+    def interrupt(*args, **kwargs):
+        raise KeyboardInterrupt()
+
+    monkeypatch.setattr(model, "generate", interrupt if stage == "generation" else generation)
+    if stage in {"visible", "grading"}:
+        monkeypatch.setattr(Sandbox, "visible_tests" if stage == "visible" else "invoke", interrupt)
+    try:
+        # The tool adapter latches interruptions before TRL catches tool errors.
+        error = InfrastructureError if stage == "visible" else KeyboardInterrupt
+        with pytest.raises(error):
+            trainer.train()
+        assert trainer.state.global_step == 0
+        assert all(p.grad is None for p in model.parameters())
+    finally:
+        owner.cleanup()
+    assert all(core.workspace is None for core in owner.cores)
+    assert not list(owner.resource_root.glob("coding-rl-*"))
+
+
+def test_interrupted_real_second_save_preserves_first_committed_checkpoint(
+    tokenizer, config, tmp_path, monkeypatch
+):
+    from coding_rl.training import trainer as module
+    from coding_rl.training.checkpoints import load_checkpoint
+
+    owner, model, trainer = setup_native(config, tmp_path, tokenizer, groups=2)
+    actual_generate = model.generate
+    actual_save = model.save_pretrained
+    generation, _ = scripted_generation(tokenizer, owner)
+    monkeypatch.setattr(model, "generate", generation)
+    original_policy_save = module.save_policy
+    saves = 0
+
+    def interrupted_save(*args, **kwargs):
+        nonlocal saves
+        saves += 1
+        actual_save(*args, **kwargs)
+        if saves == 2:
+            raise KeyboardInterrupt()
+
+    def real_generation_during_save(*args):
+        model.generate = actual_generate
+        try:
+            return original_policy_save(*args)
+        finally:
+            model.generate = generation
+
+    monkeypatch.setattr(model, "save_pretrained", interrupted_save)
+    monkeypatch.setattr(module, "save_policy", real_generation_during_save)
+    report = {
+        "versions": module.dependency_report("full"),
+        "native_template_sha256": module.digest_record(tokenizer.chat_template),
+        "original_template_sha256": tokenizer._evaluation_template_sha256,
+        "response_template_sha256": module.digest_record(tokenizer.response_template),
+        "trainable_parameters": {
+            n: p.numel() for n, p in model.named_parameters() if p.requires_grad
+        },
+    }
+    checkpoints = []
+    trainer.add_callback(
+        module.update_callback(
+            trainer,
+            owner,
+            report,
+            {"baseline_sha256": "a" * 64, "development_sha256": "b" * 64},
+            checkpoints,
+        )
+    )
+    try:
+        with pytest.raises(KeyboardInterrupt):
+            trainer.train()
+        assert len(checkpoints) == 1 and saves == 2
+        first = load_checkpoint(checkpoints[0]["path"])
+        assert first.manifest["global_step"] == 1
+        assert first.manifest["provenance"]["audit_files"]
+        assert not list((owner.directory / "checkpoints").glob(".checkpoint-*"))
+        assert not (owner.directory / "checkpoints" / "step-2").exists()
     finally:
         owner.cleanup()

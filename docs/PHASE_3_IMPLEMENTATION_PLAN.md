@@ -37,6 +37,6 @@ libraries out of base imports. Do not implement another rollout engine or GRPO.
    model and real Docker checks are opt-in. Record actual results and unresolved
    B-close/C1–C7 gates; do not report fixture tests as a real training proof.
 
-Implementation order follows these dependencies. Keep audit logic in `trainer.py`
+Implementation order follows these dependencies. Keep audit logic in `src/coding_rl/training/trainer.py`
 until splitting it makes the code clearer; use small typed outcome records and
 explicit composition rather than a framework of trainer abstractions.

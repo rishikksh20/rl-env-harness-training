@@ -1,5 +1,10 @@
 # Phase 4: complete real-model acceptance and the remaining roadmap
 
+Implementation update: see [Phase 4 status](PHASE_4_STATUS.md) and the
+[step-by-step training guide](TRAINING_GUIDE.md). This dated audit is retained as
+the original plan. Confirmed code defects now have implementations/regressions;
+genuine pretrained learning gates remain explicitly open.
+
 Review date: **2026-10-16**. This plan covers the current working tree, including
 the Phase 3 implementation. It consolidates the unfinished work from
 [the step-by-step roadmap](06_STEP_BY_STEP_IMPLEMENTATION.md),
@@ -83,10 +88,10 @@ new trust framework is required for this local lab.
 ### P4-01. Validate baseline, development, and checkpoint evidence
 
 **Priority:** before a real training proof. **Owners:**
-[trainer.py](../src/coding_rl/trainer.py),
-[evaluate.py](../src/coding_rl/evaluate.py),
-[checkpoints.py](../src/coding_rl/checkpoints.py),
-[cli.py](../src/coding_rl/cli.py).
+[trainer.py](../src/coding_rl/training/trainer.py),
+[evaluate.py](../src/coding_rl/rollout/evaluate.py),
+[checkpoints.py](../src/coding_rl/training/checkpoints.py),
+[main.py](../src/main.py).
 
 Replace the current counter-only prerequisite checks with a small validated report
 contract. Require the planned total to equal selected tasks times attempts per
@@ -94,9 +99,10 @@ task and be nonzero. Recompute started/valid/incomplete/not-started counts from
 actual attempt records; validate task IDs, seeds, duplicates, policy identity,
 starter/grading/image identities, binary reward/verdict agreement, and cleanup.
 Cross-check a development outcome with its real episode trace and frozen-source
-artifact, including successful public visible-test execution feedback, an accepted
-edit, completed independent grading, and matching source hashes. A valid incorrect
-repair remains acceptable development evidence.
+artifact, including a model-visible result from a healthy `run_tests` invocation,
+an accepted edit, completed independent grading, and matching source hashes. The
+visible suite itself may fail; a valid incorrect repair remains acceptable
+development evidence.
 
 Validate detailed checkpoint metadata: kind, immutable base/tokenizer identity,
 step, intended trainable parameters, finite update measurements, source/config/
@@ -117,11 +123,13 @@ complete valid evidence is accepted without relying on a handwritten pass counte
 ### P4-02. Complete native correlation, failure classification, and audit artifacts
 
 **Priority:** before native pilots. **Owners:**
-[trl_env.py](../src/coding_rl/trl_env.py),
-[trainer.py](../src/coding_rl/trainer.py),
-[trace.py](../src/coding_rl/trace.py).
+[adapter.py](../src/coding_rl/training/adapter.py),
+[trainer.py](../src/coding_rl/training/trainer.py),
+[trace.py](../src/utils/trace.py).
 
 Set native run/collection/policy/attempt identity before reset emits an event.
+Check the full discovered tool contract, including defaults, extra-argument rules
+and no-argument tools, alongside the existing name/property/required-field checks.
 Retain a direct episode-to-trace reference in the group ledger and link the
 native conversation, exact IDs, tensor/probability artifacts, frozen source and
 verdict. Preserve available raw native collection data and an explicit rejection
@@ -156,10 +164,10 @@ corrupted or incomplete groups cannot reach backward/optimizer admission.
 ### P4-03. Prove operational cleanup and committed-checkpoint recovery
 
 **Priority:** before native runtime acceptance. **Owners:**
-[training_worker.py](../src/coding_rl/training_worker.py),
-[sandbox.py](../src/coding_rl/sandbox.py),
-[environment.py](../src/coding_rl/environment.py),
-[checkpoints.py](../src/coding_rl/checkpoints.py).
+[worker.py](../src/coding_rl/training/worker.py),
+[sandbox.py](../src/environments/execution/sandbox.py),
+[coding.py](../src/environments/coding.py),
+[checkpoints.py](../src/coding_rl/training/checkpoints.py).
 
 Exercise graceful interruption and forced child termination during actual native
 generation, visible tests, private grading, and checkpoint save/reload/publication.
@@ -183,11 +191,11 @@ claim of instantaneous kernel-enforced memory containment for the trainer.
 ### P4-04. Establish model feasibility and explicit supported profiles
 
 **Priority:** before expensive collection; independent of held-out sampling.
-**Owners:** [probe.py](../src/coding_rl/probe.py),
-[trainer.py](../src/coding_rl/trainer.py),
-[models.py](../src/coding_rl/models.py),
-[inference_worker.py](../src/coding_rl/inference_worker.py),
-[config.py](../src/coding_rl/config.py), profiles and dependency locks.
+**Owners:** [probe.py](../src/coding_rl/rollout/probe.py),
+[trainer.py](../src/coding_rl/training/trainer.py),
+[backend.py](../src/models/backend.py),
+[worker.py](../src/models/worker.py),
+[config.py](../src/config.py), profiles and dependency locks.
 
 Keep the existing API/tokenizer-only `train --probe` identity. Add a separately
 named, supervised model feasibility operation that can run without a completed
@@ -202,7 +210,9 @@ Check every present trainable gradient for finiteness and require a nonzero task
 gradient when claimed. Record trainable/frozen names/counts and actual LoRA target
 modules/rank/scaling/dropout; reject empty or unexpectedly broad selections.
 Validate recurrent/cache state and independent/padded behavior on genuine inputs.
-Restore gradients/random state after diagnostics.
+Restore gradients/random state after diagnostics. Discard diagnostic optimizer
+state and verify the policy returns to its admitted starting identity, or reload
+the pinned policy before sampling if the feasibility exercise mutated weights.
 
 Record CPU model, cores/threads, relevant instruction support, available/total RAM,
 OS/Python, exact versions/source/lock identity, dtype, model class/loading report,
@@ -225,8 +235,8 @@ feasibility, and training. Full/LoRA and CPU/device differences have honest stat
 ### P4-05. Close Stage B with a genuine development episode and baseline
 
 **Type:** execution/evidence, plus fixes exposed by integration.
-**Owners:** [rollout.py](../src/coding_rl/rollout.py),
-[evaluate.py](../src/coding_rl/evaluate.py), CPU profiles and evidence records.
+**Owners:** [episode.py](../src/coding_rl/rollout/episode.py),
+[evaluate.py](../src/coding_rl/rollout/evaluate.py), CPU profiles and evidence records.
 
 Build the no-extra Docker worker and verify effective limits. On the intended
 runtime host, prepare the pinned target and run an authentic training-partition
@@ -251,7 +261,7 @@ evidence. The historic macOS read and current fixture tests remain separately na
 
 **Prerequisites:** P4-01–P4-05; performance instrumentation needed for the declared
 profile should be completed before collecting its comparison data.
-**Owner:** [trainer.py](../src/coding_rl/trainer.py).
+**Owner:** [trainer.py](../src/coding_rl/training/trainer.py).
 
 Start with one measured parameter mode, normally LoRA if full training is too
 large. Retain four independent same-task attempts, one live policy/device,
@@ -273,10 +283,10 @@ or describe Adam momentum after an equal-reward group as new task learning.
 ### P4-07. Verify a real portable checkpoint and matched held-out comparison
 
 **Prerequisites:** P4-06 and the checkpoint integrity/recovery work above.
-**Owners:** [checkpoints.py](../src/coding_rl/checkpoints.py),
-[inference_worker.py](../src/coding_rl/inference_worker.py),
-[models.py](../src/coding_rl/models.py),
-[evaluate.py](../src/coding_rl/evaluate.py).
+**Owners:** [checkpoints.py](../src/coding_rl/training/checkpoints.py),
+[worker.py](../src/models/worker.py),
+[backend.py](../src/models/backend.py),
+[evaluate.py](../src/coding_rl/rollout/evaluate.py).
 
 Save a completed content-identified full or LoRA artifact from the genuine update.
 Tie base/adapter bytes, update step, group/tensor/probability evidence, dependencies,
@@ -310,11 +320,11 @@ hardware requires its own profile, not a `device` override on a CPU-only stack.
 
 ### P4-09. Finish metrics and measured CPU benchmarks
 
-**Owners:** [inference_worker.py](../src/coding_rl/inference_worker.py),
-[models.py](../src/coding_rl/models.py),
-[rollout.py](../src/coding_rl/rollout.py),
-[evaluate.py](../src/coding_rl/evaluate.py),
-[trainer.py](../src/coding_rl/trainer.py).
+**Owners:** [worker.py](../src/models/worker.py),
+[backend.py](../src/models/backend.py),
+[episode.py](../src/coding_rl/rollout/episode.py),
+[evaluate.py](../src/coding_rl/rollout/evaluate.py),
+[trainer.py](../src/coding_rl/training/trainer.py).
 
 Instrument actual first-token and decode-only timings if reporting them; keep
 `null` until implemented. Separate cold load/warmup, prompt prefill, generation,
@@ -336,8 +346,8 @@ and broad benchmark claims are not required for the initial lab.
 
 ### P4-10. Complete the tutorial, profiles, packaging, and release handoff
 
-**Owners:** README/design/status documents, [config.py](../src/coding_rl/config.py),
-[cli.py](../src/coding_rl/cli.py), profiles, [pyproject.toml](../pyproject.toml),
+**Owners:** README/design/status documents, [config.py](../src/config.py),
+[main.py](../src/main.py), profiles, [pyproject.toml](../pyproject.toml),
 [Dockerfile](../docker/Dockerfile), and focused regression tests.
 
 Supply distinct measured baseline, full/LoRA training and trained-evaluation
@@ -353,7 +363,7 @@ method-level explanations, importable API paths, troubleshooting and capability
 tables with executed evidence. Preserve dated Phase A/2/3 results as historical
 records; do not rewrite their measurements as Phase 4 runs.
 
-Keep one readable core and native GRPO owner. The current `trainer.py` is about
+Keep one readable core and native GRPO owner. The current `src/coding_rl/training/trainer.py` is about
 1,170 lines: extract compatibility/probe or checkpoint coordination only where it
 materially improves readability, leaving admission rules explicit and shared
 loading/prompt validation in one place. No registry, event bus or generic agent
@@ -370,6 +380,11 @@ CI service is not an original completion requirement.
 each capability has an evidence link, and no current-facing document calls
 implemented native code absent or equates a fixture optimizer step with target
 training acceptance.
+
+Keep capability status derived from validated evidence per mode/device. The current
+compatibility probe always writes `runtime_certified: false`; promote any future
+certification record only through the actual acceptance gates. A `verified_update`
+run status alone does not certify the held-out comparison or the second mode.
 
 ## 4. Original optional Stage D work
 
@@ -443,26 +458,26 @@ part of the original small local implementation.
 
 | Files | Work to carry into implementation |
 |---|---|
-| `config.py`, `cli.py`, `configs/` | Distinct probes/measured profiles, baseline path protection, future optional selectors only with actual implementations |
-| `trainer.py`, `trl_env.py`, `trace.py` | Evidence validation, initial correlation, duplicate/error handling, rejected/native trace artifacts, feasibility and aggregate metrics |
-| `training_worker.py`, `sandbox.py`, `environment.py` | Actual-stage interruption/fault coverage and consistent final recovery records; preserve the existing core and resource allowlist |
-| `checkpoints.py`, `models.py`, `inference_worker.py` | Strong artifact schema, explicit model profiles/fallback, representative reload, both artifact kinds in the inference child, timing instrumentation |
-| `evaluate.py`, `rollout.py`, `probe.py` | Verified baseline/after reports, complete denominators/means/costs, genuine integration and independent feasibility entry |
-| `harness.py` and an optional new custom adapter | Preserve scripted reference-only behavior; add only the narrow eval driver boundary for P4-11 |
+| `src/config.py`, `src/main.py`, `configs/` | Distinct probes/measured profiles, baseline path protection, future optional selectors only with actual implementations |
+| `src/coding_rl/training/trainer.py`, `src/coding_rl/training/adapter.py`, `src/utils/trace.py` | Evidence validation, initial correlation, duplicate/error handling, rejected/native trace artifacts, feasibility and aggregate metrics |
+| `src/coding_rl/training/worker.py`, `src/environments/execution/sandbox.py`, `src/environments/coding.py` | Actual-stage interruption/fault coverage and consistent final recovery records; preserve the existing core and resource allowlist |
+| `src/coding_rl/training/checkpoints.py`, `src/models/backend.py`, `src/models/worker.py` | Strong artifact schema, explicit model profiles/fallback, representative reload, both artifact kinds in the inference child, timing instrumentation |
+| `src/coding_rl/rollout/evaluate.py`, `src/coding_rl/rollout/episode.py`, `src/coding_rl/rollout/probe.py` | Verified baseline/after reports, complete denominators/means/costs, genuine integration and independent feasibility entry |
+| `src/harnesses/scripted.py` and an optional new custom adapter | Preserve scripted reference-only behavior; add only the narrow eval driver boundary for P4-11 |
 | Optional new CPU vLLM backend/profile | P4-12 only; isolated dependencies if needed, honest inference-only capability |
-| `tasks.py`, `fixtures/`, `patches.py`, `verifier.py`, `worker.py` | Preserve working Stage A contracts; change only for a demonstrated defect or explicitly activated extension |
+| `src/tasks/catalog.py`, `fixtures/`, `src/environments/patches.py`, `src/environments/verifier.py`, `worker.py` | Preserve working Stage A contracts; change only for a demonstrated defect or explicitly activated extension |
 | `tests/` | New negative evidence/identity cases, actual lifecycle cancellation, genuine opt-in model gates; fixture tests remain separately labeled |
 | `pyproject.toml`, `uv.lock`, `docker/`, docs | Supported dependency/platform checks, no-extra packaging, exact run instructions and retained evidence |
 
 ## 6. Phase 4 acceptance checklist
 
-- [ ] The confirmed prerequisite/reset/duplicate-matching findings have regression
+- [x] The confirmed prerequisite/reset/duplicate-matching findings have regression
   coverage and an implemented resolution.
-- [ ] Healthy invalid native calls and infrastructure failures have distinct,
+- [x] Healthy invalid native calls and infrastructure failures have distinct,
   tested eligibility/reporting behavior; rejected groups retain diagnostic evidence.
 - [ ] Actual native-stage interruption, RAM/deadline failure and checkpoint recovery
   leave no owned candidate resources or apparently usable partial saves.
-- [ ] Independent model capacity reports and a real small fallback profile exist;
+- [x] Independent model capacity reports and a real small fallback profile exist;
   each device/mode limitation is explicit.
 - [ ] Genuine target CPU development read/edit/test/grading and the declared
   four-attempt held-out baseline are retained and internally validated.

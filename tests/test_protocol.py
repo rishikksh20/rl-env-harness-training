@@ -3,14 +3,14 @@ from dataclasses import replace
 
 import pytest
 
-from coding_rl.config import (
+from config import (
     EnvironmentConfig,
     ModelConfig,
     RolloutConfig,
     load_config,
     validate_model_mode,
 )
-from coding_rl.protocol import (
+from harnesses.protocol import (
     ProtocolError,
     ToolCall,
     function_tools,

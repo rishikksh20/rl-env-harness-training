@@ -8,10 +8,10 @@ import time
 
 import pytest
 
-from coding_rl.config import RolloutConfig
-from coding_rl.errors import InfrastructureError
-from coding_rl.inference_worker import receive_record, send_record
-from coding_rl.models import GenerationTimeout, TransformersBackend, dependency_versions
+from config import RolloutConfig
+from models.backend import GenerationTimeout, TransformersBackend, dependency_versions
+from utils.errors import InfrastructureError
+from utils.ipc import receive_record, send_record
 
 
 def sleeping_worker(connection):
@@ -83,7 +83,11 @@ def test_base_import_does_not_load_inference_stack():
         [
             sys.executable,
             "-c",
-            "import sys, coding_rl; assert 'torch' not in sys.modules; assert 'transformers' not in sys.modules",
+            "import sys, coding_rl, main; "
+            "from models.backend import TransformersBackend; "
+            "from coding_rl.training.worker import train; "
+            "from coding_rl import Config, make_environment; "
+            "assert 'torch' not in sys.modules; assert 'transformers' not in sys.modules",
         ],
         capture_output=True,
         text=True,

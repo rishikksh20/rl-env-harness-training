@@ -5,8 +5,8 @@ from pathlib import Path
 import pytest
 
 from coding_rl import make_environment, run_episode
-from coding_rl.errors import InfrastructureError
-from coding_rl.patches import make_diff
+from environments.patches import make_diff
+from utils.errors import InfrastructureError
 
 
 def repair(env, task_id="zero-timeout", variant="correct"):

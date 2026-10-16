@@ -5,13 +5,14 @@ import pytest
 from test_protocol import PREFIX, xml_call
 
 from coding_rl import make_environment
-from coding_rl.config import ModelConfig
-from coding_rl.errors import InfrastructureError
-from coding_rl.evaluate import aggregate, evaluate
-from coding_rl.models import Generation, GenerationTimeout, derive_seed
-from coding_rl.patches import make_diff
-from coding_rl.rollout import bounded_observation, run_model_episode
-from coding_rl.sandbox import Sandbox
+from coding_rl.rollout.episode import bounded_observation, run_model_episode
+from coding_rl.rollout.evaluate import aggregate, evaluate
+from config import ModelConfig
+from environments.execution.sandbox import Sandbox
+from environments.patches import make_diff
+from models.backend import Generation, GenerationTimeout
+from utils.errors import InfrastructureError
+from utils.seeding import derive_seed
 
 
 class FakeBackend:
@@ -246,7 +247,7 @@ def test_verifier_outage_preserves_final_stop_reason(model_env, monkeypatch):
 
 
 def test_evaluator_saves_partial_coverage_after_startup_failure(model_env, monkeypatch, tmp_path):
-    from coding_rl import evaluate as module
+    from coding_rl.rollout import evaluate as module
 
     backend = FakeBackend([])
     backend.identity = {"kind": "model", "backend": "synthetic-unit-test"}

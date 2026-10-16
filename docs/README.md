@@ -1,6 +1,15 @@
 # Minimal coding-agent RL lab: implementation drafts
 
+Start with [the detailed training guide](TRAINING_GUIDE.md) for LFM, Qwen,
+OpenCode, custom harnesses, coding datasets, and exact commands. Read
+[Phase 4 status](PHASE_4_STATUS.md) for delivered capabilities and measured limits.
+
 These documents turn [the build specification](../CODEX_AGENTIC_RL_ENV_SPEC.md) into a small, staged Python implementation plan. The environment, CPU evaluation and optional native training implementations are present. See [the run guide](../README.md), [Stage A status](PHASE_A_STATUS.md), [Phase 2 validation](PHASE_2_STATUS.md), and [Phase 3 implementation/acceptance status](PHASE_3_STATUS.md). The original architecture drafts explain the design.
+
+The current repository audit and remaining implementation/acceptance work are in
+[Phase 4: completion plan](PHASE_4_COMPLETION_PLAN.md). It maps every original
+Stage A–D milestone, records confirmed report/correlation gaps, orders the genuine
+model gates, and retains custom harness/vLLM and other conditional extensions.
 
 The [Phase 1 evaluation](PHASE_1_EVALUATION.md) identified a cleanup/cache edge case, now fixed with a regression test. The [Phase 2 rollout design](PHASE_2_MODEL_ROLLOUT_DESIGN.md) remains the original design record; [Phase 2 status](PHASE_2_STATUS.md) distinguishes implemented behavior from executed model/Docker gates.
 
@@ -12,6 +21,10 @@ The central idea is simple: a model uses tools to change a private copy of a tin
 
 | Document | Question it answers |
 |---|---|
+| [CODE_LAYOUT.md](CODE_LAYOUT.md) | Where do application, RL, environment, model, harness, task and shared utility modules live, and how do I run them? |
+| [TRAINING_GUIDE.md](TRAINING_GUIDE.md) | How do I run coding RL, use OpenCode or my own harness, change models, add tasks, and compare a checkpoint? |
+| [PHASE_4_STATUS.md](PHASE_4_STATUS.md) | What was implemented and measured, and which genuine learning gates remain open? |
+| [PHASE_4_COMPLETION_PLAN.md](PHASE_4_COMPLETION_PLAN.md) | What remains after the codebase audit, which fixes come first, and what proves completion of the original roadmap? |
 | [PHASE_3_STATUS.md](PHASE_3_STATUS.md) | How do native training, full/LoRA checkpoints and matched evaluation work, and which gates actually passed? |
 | [PHASE_2_STATUS.md](PHASE_2_STATUS.md) | What Phase 2 code exists, how do I run it, and which acceptance gates have actually run? |
 | [PHASE_3_NATIVE_TRAINING_DESIGN.md](PHASE_3_NATIVE_TRAINING_DESIGN.md) | What remains before native training, which files change next, and what proves an actual policy update? |

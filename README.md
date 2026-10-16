@@ -2,6 +2,12 @@
 
 The project provides a stateful coding environment, CPU Transformers evaluation, and an optional native TRL training path. Read a file, apply a patch, run visible tests, freeze the changes, and obtain an independent binary correctness reward. Each attempt starts from an immutable tiny repository. The base install and scripted lessons require no model weights or inference packages. Native integration is tested with fixture models; target-model training acceptance is recorded separately.
 
+Start with the [step-by-step coding RL guide](docs/TRAINING_GUIDE.md): LFM2.5-350M
+or Qwen3.5-0.8B, LoRA/full training, OpenCode or a custom evaluation harness,
+checkpoint comparison, and your own coding dataset. [Phase 4 status](docs/PHASE_4_STATUS.md)
+records measured capabilities and remaining genuine learning gates. OpenCode runs
+rollout/evaluation; native TRL owns gradient training over the same environment.
+
 ## Setup with uv
 
 Python 3.11+ and [uv](https://docs.astral.sh/uv/guides/projects/) are required. All Python dependencies live in `pyproject.toml`; `uv.lock` locks the resolved versions. Pytest is a runtime dependency because the environment executes authored visible suites; Ruff is in the development group. There are no separate requirements files.
@@ -10,6 +16,16 @@ Python 3.11+ and [uv](https://docs.astral.sh/uv/guides/projects/) are required. 
 uv sync --locked
 uv run coding-rl --help
 ```
+
+After pulling the module reorganization, run `uv sync` with your chosen extras
+again to refresh the console entry point. The existing `coding-rl` subcommands
+and YAML config paths are unchanged. After activating `.venv`, these also work:
+
+```bash
+python src/main.py --help
+python -m main --help
+```
+
 
 The default sandbox requires Docker with cgroup v2 and working memory, CPU, and PID limits. Build the offline worker image once. It uses the same Python dependency lock and contains neither task solutions nor private grading cases.
 
@@ -79,28 +95,47 @@ uv run --extra rollout coding-rl eval --config configs/rollout-cpu.yaml
 
 `rollout` records genuine model decisions; it never selects a reference repair. `eval` selects the held-out `chunk-tail` partition by default and saves `outputs/evaluation.json` after every attempt. Set `evaluation.split: train` for development. Configure sampling explicitly before declaring a baseline; the default greedy repeats are not independent samples.
 
-Trajectories include exact generated IDs/text, parsed calls, bounded model-visible observations, accepted source, stop reasons, verdicts, and cleanup status. Healthy limits are graded; infrastructure failures have no usable reward and are reported separately. Generation timeout terminates the inference process; the next attempt reloads before its episode clock starts. The controller accepts one Qwen3.5 XML tool call per turn and rejects multi-call proposals atomically.
+Trajectories include exact generated IDs/text, parsed calls, bounded model-visible observations, accepted source, stop reasons, verdicts, and cleanup status. Healthy limits are graded; infrastructure failures have no usable reward and are reported separately. Generation timeout terminates the inference process; the next attempt reloads before its episode clock starts. The controller accepts one Qwen3.5 XML or LFM2.5 literal tool call per turn and rejects multi-call proposals atomically.
 
-See [Phase 2 status](docs/PHASE_2_STATUS.md) for executed checks, CPU measurements, and outstanding integration gates. This checkout's implementation validation did not have Docker available, so it does not publish a held-out model score.
+See [Phase 2 status](docs/PHASE_2_STATUS.md) for executed checks, CPU measurements, and outstanding integration gates. Current Docker and LFM validation is recorded in [Phase 4 status](docs/PHASE_4_STATUS.md); historical Phase 2 measurements remain separate.
 
 ## Follow the implementation
 
-| File | Responsibility |
+Application commands and configuration live directly in `src`. Domain code is
+organized into packages; [the code layout guide](docs/CODE_LAYOUT.md) documents
+imports, entry points, and the previous-to-current module mapping.
+
+```text
+src/
+  main.py                    # CLI entry point
+  config.py                  # Validated application configuration
+  coding_rl/
+    training/                # Native TRL, admission, checkpoints and supervision
+    rollout/                 # Model episodes, evaluation and diagnostics
+  environments/
+    coding.py                # Four-tool stateful environment
+    patches.py
+    verifier.py
+    execution/               # Docker sandbox and isolated candidate worker
+  models/                    # Model profiles, backend and inference worker
+  harnesses/                 # Scripted/OpenCode/custom drivers and tool protocol
+  tasks/
+    catalog.py
+    dataset.py
+    fixtures/                # Public starters and protected grading data
+  utils/                     # IPC, processes, records, paths, seeds and traces
+```
+
+| Location | Responsibility |
 |---|---|
-| `config.py` | Strict YAML records and validation |
-| `tasks.py`, `fixtures/` | Immutable starters, public dataset export, authored private cases |
-| `environment.py` | Reset, four tools, budgets, snapshot, cached reward, cleanup |
-| `patches.py` | Restricted exact-context unified diff parser |
-| `sandbox.py` | Disposable snapshots, bounded processes, Docker/local policies |
-| `worker.py` | Candidate callable execution; no expected values or assertions |
-| `verifier.py` | Trusted assertions against values returned by independent workers |
-| `trace.py` | Ordered JSONL events and final artifact recording |
-| `harness.py`, `cli.py` | Scripted lessons and command entry points |
-| `models.py`, `inference_worker.py` | Lazy tokenizer and persistent, cancellable CPU inference process |
-| `protocol.py`, `rollout.py` | Strict Qwen3.5 protocol, public conversation, dispatcher and budgets |
-| `evaluate.py`, `probe.py` | Held-out scheduling/metrics and ungraded compatibility diagnostic |
-| `trl_env.py`, `trainer.py` | Four-tool native adapter, complete-group/tensor admission, TRL updates and evidence |
-| `training_worker.py`, `checkpoints.py` | Supervised ownership, atomic full/LoRA artifacts and content identity |
+| `src/main.py`, `src/config.py` | Commands and strict YAML records |
+| `src/environments/` | Tools, patch validation, candidate containment and independent verification |
+| `src/tasks/` | Immutable task catalogs, protected cases and dataset import |
+| `src/models/` | Lazy loading, tokenizer/model profiles and persistent CPU inference |
+| `src/harnesses/` | Scripted/external loops, tool parsing and the local MCP bridge |
+| `src/coding_rl/rollout/` | Public conversations, bounded episodes and held-out metrics |
+| `src/coding_rl/training/` | Native adapter, group/tensor audits, capacity, optimizer evidence and checkpoints |
+| `src/utils/` | Shared dependency-light infrastructure; no model/trainer ownership |
 
 The public tools are `list_files`, `read_file`, `apply_patch`, and `run_tests`. Only existing allowed source files can be edited. Patches cannot add/delete/rename files or change protected tests. The final submission is reconstructed from actual source bytes, not from the agent's claim or a supplied Git diff.
 
@@ -127,6 +162,11 @@ resource admission, checkpoint evaluation, and the remaining real-model gates.
 
 ## Next phases
 
-Stage B's CPU rollout/evaluation and Stage C's native training implementation are present. Their measured acceptance status is recorded separately in [Phase 2](docs/PHASE_2_STATUS.md) and [Phase 3](docs/PHASE_3_STATUS.md). Genuine target-model training and its held-out comparison remain acceptance work. Stage D optionally adds custom harnesses and CPU vLLM evaluation.
+Stage B's CPU rollout/evaluation and Stage C's native training implementation are present. Their measured acceptance status is recorded separately in [Phase 2](docs/PHASE_2_STATUS.md) and [Phase 3](docs/PHASE_3_STATUS.md). Genuine target-model training and its held-out comparison remain acceptance work. The selected custom harness/OpenCode adapter is implemented; CPU vLLM remains optional and unsupported.
+
+The [Phase 4 completion plan](docs/PHASE_4_COMPLETION_PLAN.md) consolidates the
+remaining work after a codebase audit: evidence/correlation fixes, genuine model
+acceptance, metrics and fallback profiles, release documentation, and the optional
+Stage D adapters.
 
 See [the design index](docs/README.md), [mental model](docs/ARCHITECTURE.md), and [implementation plan](docs/06_STEP_BY_STEP_IMPLEMENTATION.md). Docker unavailable, missing worker image, or unsupported hard limits fail clearly; fix that infrastructure or explicitly use the authored-fixture local lesson.
