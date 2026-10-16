@@ -128,9 +128,9 @@ def _kill_group(pid: int) -> None:
 
 
 @contextmanager
-def materialize(files: Mapping[str, str]) -> Iterator[Path]:
+def materialize(files: Mapping[str, str], *, parent: Path | None = None) -> Iterator[Path]:
     """An owned temporary snapshot: never mount the authoritative working copy."""
-    with tempfile.TemporaryDirectory(prefix="coding-rl-snapshot-") as directory:
+    with tempfile.TemporaryDirectory(prefix="coding-rl-snapshot-", dir=parent) as directory:
         root = Path(directory)
         root.chmod(0o755)  # The non-root container user needs to read the bind mount.
         for name, content in files.items():
@@ -145,8 +145,20 @@ def materialize(files: Mapping[str, str]) -> Iterator[Path]:
 class Sandbox:
     """Two real strategies; trusted-local refuses every non-authored snapshot."""
 
-    def __init__(self, config: SandboxConfig):
+    def __init__(
+        self,
+        config: SandboxConfig,
+        *,
+        resource_root: Path | None = None,
+        run_id: str | None = None,
+    ):
         self.config = config
+        self.resource_root = resource_root
+        self.run_id = run_id
+        if run_id is not None and (
+            len(run_id) != 32 or any(c not in "0123456789abcdef" for c in run_id)
+        ):
+            raise ValueError("Invalid sandbox run identity")
         self.identity: str | None = None
 
     def _docker_control(self, arguments: list[str]) -> str:
@@ -191,7 +203,7 @@ class Sandbox:
             "assert pathlib.Path('/opt/worker.py').is_file(); print('ready')"
         )
         try:
-            with materialize({"probe": "ready"}) as root:
+            with materialize({"probe": "ready"}, parent=self.resource_root) as root:
                 result = self._docker_run(root, ["-I", "-c", probe], timeout=20)
             if (
                 result.status != "completed"
@@ -206,7 +218,13 @@ class Sandbox:
     def _docker_run(
         self, root: Path, arguments: list[str], *, timeout: float, input_bytes: bytes = b""
     ) -> ProcessResult:
-        name = f"coding-rl-{uuid.uuid4().hex}"
+        name = f"coding-rl-{self.run_id + '-' if self.run_id else ''}{uuid.uuid4().hex}"
+        if self.resource_root is not None and self.run_id is not None:
+            # Persist ownership before launch so a parent can clean after SIGKILL.
+            with (self.resource_root / "containers.jsonl").open("a") as stream:
+                stream.write(json.dumps(name) + "\n")
+                stream.flush()
+                os.fsync(stream.fileno())
         cfg = self.config
         command = [
             "docker",
@@ -231,6 +249,8 @@ class Sandbox:
             "--workdir=/workspace",
             "--entrypoint=/opt/lab/.venv/bin/python",
         ]
+        if self.run_id is not None:
+            command.extend(["--label", f"coding-rl.run={self.run_id}"])
         for key, value in CONTROLLED_ENV.items():
             command.extend(["--env", f"{key}={value}"])
         command.extend([self.identity or cfg.image, *arguments])
@@ -284,7 +304,7 @@ class Sandbox:
         )
         if limit <= 0:
             raise InfrastructureError("Verification deadline exhausted")
-        with materialize(files) as root:
+        with materialize(files, parent=self.resource_root) as root:
             if self.config.kind == "docker":
                 return self._docker_run(root, arguments, timeout=limit, input_bytes=input_bytes)
             env = {"PATH": os.defpath, **CONTROLLED_ENV}

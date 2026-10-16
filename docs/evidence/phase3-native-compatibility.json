@@ -1,0 +1,226 @@
+{
+  "schema_version": 1,
+  "versions": {
+    "torch": "2.14.1+cpu",
+    "transformers": "5.19.0",
+    "huggingface-hub": "2.2.0",
+    "trl": "1.16.0",
+    "datasets": "5.1.0",
+    "accelerate": "1.15.0",
+    "peft": "0.21.2"
+  },
+  "transitive_versions": {
+    "fsspec": "2026.7.0"
+  },
+  "dependency_lock_sha256": "c501c17eab19dceea7ea4f965c99c9cb23200d5938cb1b7739892c34ab2cecb2",
+  "python": "3.12.3",
+  "platform": "Linux-7.1.5-76070105-generic-x86_64-with-glibc2.39",
+  "constructor": "(model: 'str | PreTrainedModel | PeftModel', reward_funcs: str | transformers.modeling_utils.PreTrainedModel | collections.abc.Callable[..., list[float | None]] | list[str | transformers.modeling_utils.PreTrainedModel | collections.abc.Callable[..., list[float | None]]] | None = None, args: trl.trainer.grpo_config.GRPOConfig | None = None, train_dataset: datasets.arrow_dataset.Dataset | datasets.iterable_dataset.IterableDataset | None = None, eval_dataset: datasets.arrow_dataset.Dataset | datasets.iterable_dataset.IterableDataset | datasets.dataset_dict.DatasetDict | datasets.dataset_dict.IterableDatasetDict | dict[str, datasets.arrow_dataset.Dataset | datasets.iterable_dataset.IterableDataset] | None = None, processing_class: transformers.tokenization_utils_base.PreTrainedTokenizerBase | transformers.processing_utils.ProcessorMixin | None = None, reward_processing_classes: transformers.tokenization_utils_base.PreTrainedTokenizerBase | list[transformers.tokenization_utils_base.PreTrainedTokenizerBase] | None = None, callbacks: list[transformers.trainer_callback.TrainerCallback] | None = None, optimizers: tuple[torch.optim.optimizer.Optimizer | None, torch.optim.lr_scheduler.LambdaLR | None] = (None, None), quantization_config: 'BitsAndBytesConfig | None' = None, peft_config: 'PeftConfig | None' = None, tools: list[collections.abc.Callable] | None = None, rollout_func: collections.abc.Callable[[list[str], 'GRPOTrainer'], dict[str, typing.Any]] | None = None, environment_factory: collections.abc.Callable[[], trl.trainer.grpo_trainer._SupportsReset] | dict[str, collections.abc.Callable[[], trl.trainer.grpo_trainer._SupportsReset]] | None = None)",
+  "compute_loss": "(self, model, inputs, return_outputs=False, num_items_in_batch=None)",
+  "config": "(output_dir: str | None = None, per_device_train_batch_size: int = 8, num_train_epochs: float = 3.0, max_steps: int = -1, learning_rate: float = 1e-06, lr_scheduler_type: transformers.trainer_utils.SchedulerType | str = 'linear', lr_scheduler_kwargs: dict | str | None = None, warmup_steps: float = 0, optim: transformers.training_args.OptimizerNames | str = 'adamw_torch_fused', optim_args: str | None = None, weight_decay: float = 0.0, adam_beta1: float = 0.9, adam_beta2: float = 0.999, adam_epsilon: float = 1e-08, optim_target_modules: None | str | list[str] = None, gradient_accumulation_steps: int = 1, average_tokens_across_devices: bool = True, max_grad_norm: float = 1.0, label_smoothing_factor: float = 0.0, bf16: bool | None = None, fp16: bool = False, bf16_full_eval: bool = False, fp16_full_eval: bool = False, tf32: bool | None = None, gradient_checkpointing: bool = True, gradient_checkpointing_kwargs: dict[str, typing.Any] | str | None = None, torch_compile: bool = False, torch_compile_backend: str | None = None, torch_compile_mode: str | None = None, use_liger_kernel: bool = False, liger_kernel_config: dict[str, bool] | None = None, use_cache: bool = False, neftune_noise_alpha: float | None = None, torch_empty_cache_steps: int | None = None, auto_find_batch_size: bool = False, logging_strategy: transformers.trainer_utils.IntervalStrategy | str = 'steps', logging_steps: float = 10, logging_first_step: bool = False, log_on_each_node: bool = True, logging_nan_inf_filter: bool = True, include_num_input_tokens_seen: str | bool = 'no', log_level: str = 'passive', log_level_replica: str = 'warning', disable_tqdm: bool | None = None, report_to: None | str | list[str] = 'none', run_name: str | None = None, project: str = 'huggingface', trackio_space_id: str | None = None, trackio_bucket_id: str | None = None, trackio_static_space_id: Union[str, NoneType, Literal[False]] = None, eval_strategy: transformers.trainer_utils.IntervalStrategy | str = 'no', eval_steps: float | None = None, eval_delay: float = 0, per_device_eval_batch_size: int = 8, prediction_loss_only: bool = False, eval_on_start: bool = False, eval_do_concat_batches: bool = True, eval_use_gather_object: bool = False, eval_accumulation_steps: int | None = None, include_for_metrics: list[str] = <factory>, batch_eval_metrics: bool = False, save_only_model: bool = False, save_strategy: transformers.trainer_utils.SaveStrategy | str = 'steps', save_steps: float = 500, save_on_each_node: bool = False, save_total_limit: int | None = None, enable_jit_checkpoint: bool = False, push_to_hub: bool = False, hub_token: str | None = None, hub_private_repo: bool | None = None, hub_model_id: str | None = None, hub_strategy: transformers.trainer_utils.HubStrategy | str = 'every_save', hub_always_push: bool = False, hub_revision: str | None = None, load_best_model_at_end: bool = False, metric_for_best_model: str | None = None, greater_is_better: bool | None = None, ignore_data_skip: bool = False, restore_callback_states_from_checkpoint: bool = False, full_determinism: bool = False, seed: int = 42, data_seed: int | None = None, use_cpu: bool = False, accelerator_config: dict | str | None = None, parallelism_config: accelerate.parallelism_config.ParallelismConfig | None = None, dataloader_drop_last: bool = False, dataloader_num_workers: int = 0, dataloader_pin_memory: bool = True, dataloader_persistent_workers: bool = False, dataloader_prefetch_factor: int | None = None, dataloader_multiprocessing_context: str | None = None, dataloader_in_order: bool = True, remove_unused_columns: bool | None = False, label_names: list[str] | None = None, train_sampling_strategy: str = 'random', length_column_name: str = 'length', ddp_find_unused_parameters: bool | None = None, ddp_bucket_cap_mb: int | None = None, ddp_broadcast_buffers: bool | None = None, ddp_static_graph: bool | None = None, ddp_backend: str | None = None, ddp_timeout: int = 1800, fsdp: str | None = None, fsdp_config: dict[str, typing.Any] | str | None = None, deepspeed: dict | str | None = None, debug: str | list[transformers.debug_utils.DebugOption] = '', skip_memory_metrics: bool = True, do_train: bool = False, do_eval: bool = False, do_predict: bool = False, resume_from_checkpoint: str | None = None, local_rank: int = -1, model_init_kwargs: dict[str, typing.Any] | str | None = None, trust_remote_code: bool = False, router_aux_loss_coef: float | None = None, disable_dropout: bool = False, cast_lm_head_to_fp32: bool = False, num_generations: int | None = 8, num_generations_eval: int | None = None, max_completion_length: int | None = 512, ds3_gather_for_generation: bool = True, shuffle_dataset: bool | None = True, pad_to_multiple_of: int | str | None = 'auto', generation_batch_size: int | None = None, steps_per_generation: int | None = None, temperature: float = 1.0, top_p: float = 1.0, top_k: int = 0, min_p: float | None = None, generation_kwargs: dict | str | None = None, chat_template_kwargs: dict | str | None = None, repetition_penalty: float = 1.0, cache_implementation: str | None = None, use_vllm: bool = False, vllm_mode: str = 'colocate', vllm_model_impl: str = 'vllm', vllm_enable_sleep_mode: bool = False, vllm_structured_outputs_regex: str | None = None, vllm_server_base_url: str | None = None, vllm_server_host: str = '0.0.0.0', vllm_server_port: int = 8000, vllm_server_timeout: float = 240.0, vllm_group_port: int = 51216, vllm_gpu_memory_utilization: float = 0.3, vllm_max_model_length: int | None = None, vllm_tensor_parallel_size: int = 1, beta: float = 0.0, num_iterations: int = 1, epsilon: float = 0.2, delta: float | None = None, epsilon_high: float | None = None, sapo_temperature_neg: float = 1.05, sapo_temperature_pos: float = 1.0, vespo_k_pos: float = 2.0, vespo_lambda_pos: float = 3.0, vespo_k_neg: float = 3.0, vespo_lambda_neg: float = 2.0, importance_sampling_level: str = 'token', reward_weights: list[float] | None = None, multi_objective_aggregation: str = 'sum_then_normalize', scale_rewards: str = 'group', loss_type: str = 'dapo', mask_truncated_completions: bool = False, sync_ref_model: bool = False, ref_model_mixup_alpha: float = 0.6, ref_model_sync_steps: int = 512, top_entropy_quantile: float = 1.0, entropy_coef: float = 0.0, use_adaptive_entropy: bool = False, entropy_coef_min: float = 0.0, entropy_coef_max: float = 1.0, entropy_coef_delta: float = 0.005, entropy_target: float = 0.2, max_tool_calling_iterations: int | None = None, vllm_importance_sampling_correction: bool = True, vllm_importance_sampling_mode: str = 'sequence_mask', vllm_importance_sampling_clip_max: float | None = 3.0, vllm_importance_sampling_clip_min: float | None = None, off_policy_mask_threshold: float | None = None, use_bias_correction_kl: bool = True, log_completions: bool = False, log_multimodal: bool = True, num_completions_to_print: int | None = None, log_unique_prompts: bool = False, log_completions_hub_repo: str | None = None, use_transformers_continuous_batching: bool = False, transformers_continuous_batching_config: dict | str | None = None, use_transformers_paged: bool = False, vllm_importance_sampling_cap: float | None = None) -> None",
+  "trainer_source_sha256": "1c3dc2253fb3653269c11dfce4f946f74201a4cb63e0887a37e8e3bb4a3f5503",
+  "original_template_sha256": "273d8e0e683b885071fb17e08d71e5f2a5ddfb5309756181681de4f5a1822d80",
+  "native_template_sha256": "f32fe3e21c20f59d193244181c8b4c324c73a8cd313ddf825633a9ecfd2afad2",
+  "parser": "trl.parse_response/whitespace-preserving-qwen-response-template-v1",
+  "response_template_sha256": "9880f1bf6815f7018f549230ecea4a764856fe758ab8c829e9bdcae635801cf4",
+  "parser_results": {
+    "read": {
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "type": "function",
+          "function": {
+            "name": "read_file",
+            "arguments": {
+              "path": "timeout.py"
+            }
+          }
+        }
+      ],
+      "content": ""
+    },
+    "patch": {
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "type": "function",
+          "function": {
+            "name": "apply_patch",
+            "arguments": {
+              "patch": "--- a/timeout.py\n+++ b/timeout.py\n@@ -1 +1 @@\n-old\n+new\n"
+            }
+          }
+        }
+      ],
+      "content": ""
+    },
+    "boolean": {
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "type": "function",
+          "function": {
+            "name": "read_file",
+            "arguments": {
+              "path": "timeout.py",
+              "start_line": "true"
+            }
+          }
+        }
+      ],
+      "content": ""
+    },
+    "final": {
+      "role": "assistant",
+      "content": "Finished."
+    }
+  },
+  "parser_evidence": "authored protocol probes, not generated model evidence",
+  "generation_prefix": "<|im_start|>assistant\n<think>\n\n</think>\n\n",
+  "eos_token_id": 248046,
+  "pad_token_id": 248044,
+  "tool_schemas": [
+    {
+      "type": "function",
+      "function": {
+        "name": "apply_patch",
+        "description": "Atomically edit existing allowed source using an exact unified diff.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "patch": {
+              "type": "string",
+              "description": "Unified diff with a/path and b/path headers and exact context."
+            }
+          },
+          "required": [
+            "patch"
+          ]
+        },
+        "return": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "list_files",
+        "description": "List public repository files.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "directory": {
+              "type": "string",
+              "description": "Relative directory, or '.' for the repository root."
+            }
+          }
+        },
+        "return": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "read_file",
+        "description": "Read bounded public file contents.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Permitted relative UTF-8 file path."
+            },
+            "start_line": {
+              "type": "integer",
+              "description": "First line to read, numbered from one."
+            },
+            "max_lines": {
+              "type": "integer",
+              "description": "Maximum positive number of lines to return."
+            }
+          },
+          "required": [
+            "path"
+          ]
+        },
+        "return": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "run_tests",
+        "description": "Run the fixed visible tests in a fresh contained snapshot.",
+        "parameters": {
+          "type": "object",
+          "properties": {}
+        },
+        "return": {
+          "type": "string"
+        }
+      }
+    }
+  ],
+  "native_arguments": {
+    "output_dir": "<run>/native",
+    "use_cpu": true,
+    "per_device_train_batch_size": 4,
+    "gradient_accumulation_steps": 1,
+    "generation_batch_size": 4,
+    "num_generations": 4,
+    "num_iterations": 1,
+    "max_steps": 8,
+    "max_completion_length": 768,
+    "max_tool_calling_iterations": 6,
+    "temperature": 0.7,
+    "top_p": 0.8,
+    "loss_type": "grpo",
+    "scale_rewards": "group",
+    "beta": 0.0,
+    "learning_rate": 1e-06,
+    "weight_decay": 0.0,
+    "optim": "adamw_torch",
+    "lr_scheduler_type": "constant",
+    "fp16": false,
+    "bf16": false,
+    "gradient_checkpointing": false,
+    "disable_dropout": true,
+    "use_vllm": false,
+    "torch_compile": false,
+    "use_transformers_continuous_batching": false,
+    "mask_truncated_completions": false,
+    "pad_to_multiple_of": 1,
+    "chat_template_kwargs": {
+      "enable_thinking": false
+    },
+    "save_strategy": "no",
+    "report_to": "none",
+    "disable_tqdm": true,
+    "logging_steps": 1,
+    "seed": 42,
+    "data_seed": 42,
+    "dataloader_pin_memory": false
+  },
+  "limits": {
+    "entered_core_calls": 6,
+    "proposed_unknown_malformed_calls": "unavailable; no native pre-dispatch hook",
+    "calls_per_turn": "sequential native calls; atomic single-call enforcement unsupported",
+    "tool_iterations": 6,
+    "completion_tokens": "native region includes tool suffixes; cutoff groups rejected",
+    "context_tokens": "initial prompt + completion region bounded before collection",
+    "manual_rollout_settings": "not translated into native limits",
+    "observation_tokens": 256,
+    "wall_seconds": 3600,
+    "wall_owner": "parent process; whole training run, not a manual generation timeout"
+  },
+  "model_feasibility": "not_run",
+  "runtime_certified": false,
+  "sampling_seed": 42,
+  "random_stream": "native seeded batched multinomial draws; positions recorded per collection",
+  "validation_date": "2026-10-16"
+}

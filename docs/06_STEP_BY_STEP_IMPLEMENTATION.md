@@ -1,6 +1,6 @@
 # Step-by-step implementation plan and release gates
 
-Status updated **2026-10-15**: Stage A and Stage B's CPU rollout/evaluation code are implemented. Stage B still needs a fully graded real-model Docker episode and a declared held-out baseline. Stage C native training is next; Stage D remains deferred. See [Stage A status](PHASE_A_STATUS.md), [Phase 2 validation](PHASE_2_STATUS.md), and the detailed [Phase 3 native training design](PHASE_3_NATIVE_TRAINING_DESIGN.md).
+Status updated **2026-10-16**: Stage A, CPU rollout/evaluation, and the native training implementation are present. Stage C has installed native fixture tensor/update/full/LoRA reload tests; target-model development, baseline, informative update and held-out comparison remain acceptance gates. Stage D remains deferred. See [Phase 3 status](PHASE_3_STATUS.md) and the original [native training design](PHASE_3_NATIVE_TRAINING_DESIGN.md).
 
 This is the ordered implementation roadmap. The status documents record executed evidence; future milestones below do not imply installed dependencies or completed runs.
 

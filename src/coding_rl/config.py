@@ -1,4 +1,4 @@
-"""Small, strict configuration records; no framework-specific training settings yet."""
+"""Strict configuration records; optional model packages stay behind runtime boundaries."""
 
 import math
 import re
@@ -87,6 +87,8 @@ class ModelConfig:
     offline: bool = True
     startup_seconds: float = 600
     threads: int = 4
+    source: str = "hub"
+    checkpoint: str | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.name, str) or not self.name or self.name.startswith("-"):
@@ -103,6 +105,77 @@ class ModelConfig:
             raise ValueError("model.cache_dir must be a nonempty path")
         _positive("model.startup_seconds", self.startup_seconds)
         _positive("model.threads", self.threads, integer=True)
+        if not isinstance(self.source, str) or self.source not in {"hub", "full", "lora"}:
+            raise ValueError("model.source must be hub, full, or lora")
+        if self.source == "hub":
+            if self.checkpoint is not None:
+                raise ValueError("Hub policies cannot specify a local checkpoint")
+        elif not isinstance(self.checkpoint, str) or not self.checkpoint:
+            raise ValueError("Local policies require model.checkpoint")
+        elif not self.offline:
+            raise ValueError("Local policy evaluation requires offline base/tokenizer loading")
+
+
+@dataclass(frozen=True)
+class TrainingConfig:
+    mode: str = "lora"
+    output_dir: str = "outputs/training"
+    max_groups: int = 8
+    group_size: int = 4
+    completion_tokens: int = 768
+    context_tokens: int = 2048
+    observation_tokens: int = 256
+    tool_iterations: int = 6
+    learning_rate: float = 1e-6
+    temperature: float = 0.7
+    top_p: float = 0.8
+    memory_limit_mb: int = 16384
+    wall_seconds: float = 3600
+    lora_rank: int = 8
+    lora_alpha: int = 16
+    lora_targets: tuple[str, ...] = ("q_proj", "v_proj")
+    baseline_report: str | None = None
+    development_outcome: str | None = None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.mode, str) or self.mode not in {"full", "lora"}:
+            raise ValueError("training.mode must be full or lora")
+        if not isinstance(self.output_dir, str) or not self.output_dir:
+            raise ValueError("training.output_dir must be a nonempty path")
+        for name in (
+            "max_groups",
+            "group_size",
+            "completion_tokens",
+            "context_tokens",
+            "observation_tokens",
+            "tool_iterations",
+            "memory_limit_mb",
+            "lora_rank",
+            "lora_alpha",
+        ):
+            _positive(f"training.{name}", getattr(self, name), integer=True)
+        for name in ("learning_rate", "temperature", "top_p", "wall_seconds"):
+            _positive(f"training.{name}", getattr(self, name))
+        if self.group_size != 4 or self.max_groups > 8:
+            raise ValueError("The native pilot requires four attempts and at most eight groups")
+        if self.top_p > 1 or self.observation_tokens < 128:
+            raise ValueError("training requires top_p <= 1 and observation_tokens >= 128")
+        if self.context_tokens <= self.completion_tokens + self.observation_tokens:
+            raise ValueError("training.context_tokens must reserve prompt and observation space")
+        if (
+            not isinstance(self.lora_targets, (tuple, list))
+            or not self.lora_targets
+            or any(
+                not isinstance(name, str) or not name.isidentifier() for name in self.lora_targets
+            )
+            or len(set(self.lora_targets)) != len(self.lora_targets)
+        ):
+            raise ValueError("training.lora_targets must contain unique module leaf names")
+        object.__setattr__(self, "lora_targets", tuple(self.lora_targets))
+        for name in ("baseline_report", "development_outcome"):
+            value = getattr(self, name)
+            if value is not None and (not isinstance(value, str) or not value):
+                raise ValueError(f"training.{name} must be a nonempty path")
 
 
 @dataclass(frozen=True)
@@ -163,6 +236,7 @@ class Config:
     model: ModelConfig | None = None
     rollout: RolloutConfig = field(default_factory=RolloutConfig)
     evaluation: EvaluationConfig = field(default_factory=EvaluationConfig)
+    training: TrainingConfig | None = None
 
     def __post_init__(self) -> None:
         if (
@@ -172,6 +246,7 @@ class Config:
             or (self.model is not None and not isinstance(self.model, ModelConfig))
             or not isinstance(self.rollout, RolloutConfig)
             or not isinstance(self.evaluation, EvaluationConfig)
+            or (self.training is not None and not isinstance(self.training, TrainingConfig))
         ):
             raise ValueError("Configuration sections must use validated records")
         if type(self.seed) is not int or self.seed < 0:
@@ -204,11 +279,12 @@ def load_config(path: str | Path | None = None) -> Config:
         "model": ModelConfig,
         "rollout": RolloutConfig,
         "evaluation": EvaluationConfig,
+        "training": TrainingConfig,
     }
     resolved = {
         key: _record(cls, data[key])
         for key, cls in sections.items()
-        if key in data and not (key == "model" and data[key] is None)
+        if key in data and not (key in {"model", "training"} and data[key] is None)
     }
     return _record(Config, {**data, **resolved})
 
@@ -219,4 +295,14 @@ def validate_model_mode(config: Config) -> None:
     if config.sandbox.kind != "docker":
         raise ValueError(
             "Real model mode requires Docker; trusted_local accepts authored fixtures only"
+        )
+
+
+def validate_training_mode(config: Config) -> None:
+    validate_model_mode(config)
+    if config.training is None:
+        raise ValueError("Training requires a training section; use configs/train-cpu.yaml")
+    if config.model.source != "hub":
+        raise ValueError(
+            "The pilot starts from a pinned Hub policy; training resume is unsupported"
         )

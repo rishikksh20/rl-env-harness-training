@@ -1,4 +1,4 @@
-"""Coding environment and CPU rollouts. Heavy model imports remain lazy."""
+"""Coding environment, CPU rollouts, and optional native training; model imports remain lazy."""
 
 from coding_rl.config import Config, load_config
 from coding_rl.environment import CodingEnvironment, make_environment

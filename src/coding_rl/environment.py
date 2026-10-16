@@ -47,7 +47,7 @@ REASONS = {
 class CodingEnvironment:
     """Framework-independent world; debugger/cleanup methods are not model tools.
 
-    A future TRL adapter must expose only the four methods in TOOLS.
+    The native TRL adapter exposes only the four methods in TOOLS.
     """
 
     def __init__(
@@ -55,10 +55,14 @@ class CodingEnvironment:
         config: Config,
         catalog: TaskCatalog | None = None,
         observer: Callable[[dict], None] | None = None,
+        *,
+        resource_root: Path | None = None,
+        run_id: str | None = None,
     ):
         self.config = config
         self.catalog = catalog or TaskCatalog()
-        self.sandbox = Sandbox(config.sandbox)
+        self._resource_root = resource_root
+        self.sandbox = Sandbox(config.sandbox, resource_root=resource_root, run_id=run_id)
         self.recorder = Recorder(Path(config.logging.trace_dir), observer)
         self.recorder.artifact("config", asdict(config))
         self.task: Task | None = None
@@ -93,7 +97,10 @@ class CodingEnvironment:
         self.recorder.start(self.episode_id, task_id)
         self.phase = "empty"
         try:
-            self._owned = tempfile.TemporaryDirectory(prefix="coding-rl-episode-")
+            self._owned = tempfile.TemporaryDirectory(
+                prefix="coding-rl-episode-",
+                dir=self._resource_root,
+            )
             self._commit(task.starter)
             if file_digest(self._capture()) != task.starter_hash:
                 raise InfrastructureError("Reset did not reproduce authored starter")

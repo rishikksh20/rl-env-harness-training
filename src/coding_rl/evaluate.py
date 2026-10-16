@@ -13,6 +13,58 @@ from coding_rl.rollout import ModelOutcome, run_model_episode
 from coding_rl.verifier import grading_fingerprint
 
 
+def evaluation_profile(config, catalog, worker_identity: str, policy: dict) -> dict:
+    """Comparable evaluation behavior, independent of weights and artifact paths."""
+    return {
+        "schema_version": 1,
+        "split": config.evaluation.split,
+        "attempts_per_task": config.evaluation.attempts_per_task,
+        "seed": config.seed,
+        "sandbox": {**asdict(config.sandbox), "image": worker_identity},
+        "environment": asdict(config.environment),
+        "rollout": asdict(config.rollout),
+        "tokenizer": {
+            "name": config.model.name,
+            "revision": config.model.tokenizer_revision,
+            **{
+                key: policy.get(key)
+                for key in (
+                    "template_sha256",
+                    "protocol",
+                    "eos_token_id",
+                    "pad_token_id",
+                    "device",
+                    "dtype",
+                    "versions",
+                    "threads",
+                )
+            },
+        },
+        "tasks": [
+            {
+                "task_id": task.task_id,
+                "starter_hash": task.starter_hash,
+                "grading_fingerprint": grading_fingerprint(task),
+            }
+            for task in catalog.tasks(config.evaluation.split)
+        ],
+    }
+
+
+def compare_evaluations(baseline: dict, trained: dict) -> dict:
+    profile = baseline.get("evaluation_profile")
+    if not profile or profile != trained.get("evaluation_profile"):
+        raise ValueError("Before/after evaluation profiles differ")
+    before, after = baseline["metrics"], trained["metrics"]
+    first, second = before["verified_pass_rate"], after["verified_pass_rate"]
+    return {
+        "baseline": before,
+        "trained": after,
+        "pass_rate_change": second - first if first is not None and second is not None else None,
+        "equal_valid_coverage": before["valid"] == after["valid"],
+    }
+
+
 def aggregate(outcomes: list[ModelOutcome], *, planned: int) -> dict:
     if any(o.driver_kind != "model" or o.policy.get("kind") != "model" for o in outcomes):
         raise ValueError("Only genuine model outcomes may enter baseline metrics")
@@ -57,11 +109,26 @@ def aggregate(outcomes: list[ModelOutcome], *, planned: int) -> dict:
         "core_calls": sum(o.core_calls for o in outcomes),
         "accepted_edits": sum(o.accepted_edits for o in outcomes),
         "generated_tokens": sum(o.generated_tokens for o in outcomes),
+        "costs": {
+            "seconds": {
+                key: sum(o.timings.get(key, 0) for o in outcomes)
+                for key in (
+                    "generation_seconds",
+                    "tool_seconds",
+                    "grading_seconds",
+                    "cleanup_seconds",
+                    "episode_seconds",
+                )
+            },
+            "peak_rss_bytes": max(
+                (o.timings.get("peak_rss_bytes", 0) for o in outcomes), default=0
+            ),
+        },
         "sampling_note": "Settings are recorded per policy; greedy repeats are not independent samples",
     }
 
 
-def evaluate(environment, backend) -> dict:
+def evaluate(environment, backend, *, baseline: dict | None = None) -> dict:
     config = environment.config
     validate_model_mode(config)
     if backend.identity.get("kind") != "model":
@@ -70,6 +137,15 @@ def evaluate(environment, backend) -> dict:
     if not tasks:
         raise ValueError("Selected evaluation split is empty")
     planned = len(tasks) * config.evaluation.attempts_per_task
+    environment.sandbox.preflight()
+    profile = evaluation_profile(
+        config,
+        environment.catalog,
+        environment.sandbox.identity,
+        backend.identity,
+    )
+    if baseline is not None and baseline.get("evaluation_profile") != profile:
+        raise ValueError("Before/after evaluation profiles differ; refusing incomparable sampling")
     outcomes = []
     report_path = Path(config.evaluation.report_path)
     report_path.parent.mkdir(parents=True, exist_ok=True)
@@ -120,10 +196,13 @@ def evaluate(environment, backend) -> dict:
                 "policy": backend.identity,
                 "worker_identity": environment.sandbox.identity,
                 "model_startups": backend.startups,
+                "evaluation_profile": profile,
                 "metrics": aggregate(outcomes, planned=planned),
                 "attempts": [asdict(o) for o in outcomes],
                 "limitation": "Four fixtures and one held-out family measure integration, not broad coding ability",
             }
+            if baseline is not None:
+                report["comparison"] = compare_evaluations(baseline, report)
             # Save after each attempt; cancellation never erases earlier outcomes.
             temporary = report_path.with_suffix(report_path.suffix + ".tmp")
             try:

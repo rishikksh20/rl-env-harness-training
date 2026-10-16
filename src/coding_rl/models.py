@@ -9,6 +9,7 @@ import time
 import uuid
 from dataclasses import asdict, dataclass
 
+from coding_rl.checkpoints import policy_identity
 from coding_rl.config import ModelConfig, RolloutConfig
 from coding_rl.errors import InfrastructureError
 from coding_rl.inference_worker import receive_record, send_record, worker_main
@@ -57,6 +58,7 @@ class TransformersBackend:
 
     def __init__(self, config: ModelConfig):
         self.config = config
+        source_identity = policy_identity(config)
         self.versions = dependency_versions()
         try:
             from transformers import AutoTokenizer
@@ -93,6 +95,7 @@ class TransformersBackend:
             "threads": config.threads,
             "eos_token_id": self.tokenizer.eos_token_id,
             "pad_token_id": self.tokenizer.pad_token_id,
+            "policy_source": source_identity,
         }
         self.process = None
         self.connection = None

@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "validation_date": "2026-10-16",
+  "combined_suite": {
+    "command": "CODING_RL_NATIVE_TESTS=1 CODING_RL_DOCKER_TESTS=1 .venv/bin/python -m pytest -q",
+    "passed": 163,
+    "skipped": 0,
+    "warnings": 8,
+    "warning_kind": "TRL environment_factory remains experimental",
+    "seconds": 144.86
+  },
+  "other_checks": {
+    "ruff": "passed",
+    "git_diff_check": "passed",
+    "uv_lock_check_offline": "passed",
+    "source_and_wheel_build": "passed",
+    "wheel_native_modules_and_fixtures": "passed",
+    "wheel_model_free_imports": "passed",
+    "native_cli_probe": "probe_only",
+    "no_extra_docker_worker": "passed"
+  },
+  "docker_worker": {
+    "built_tag": "coding-rl-sandbox:phase3",
+    "image_id": "sha256:1a51e21792b96a47ba123c4bc6994569589f10d2dae1389fc910daefee0b50de",
+    "pytest_present": true,
+    "torch_transformers_trl_datasets_peft_present": false
+  },
+  "native_fixture_scope": [
+    "Pinned Qwen tokenizer and native response template",
+    "Tiny Qwen model with recurrent and full-attention layers",
+    "Scripted authored completions through the installed native tool loop",
+    "Mixed independently verified fixture rewards and actual native optimizer steps",
+    "Actual learning IDs/masks, forward conditioning and per-token probabilities",
+    "Rejected cutoff effects, corrupted masks and caught infrastructure exceptions",
+    "Full and LoRA checkpoints with deterministic logits/generation reload",
+    "Local full checkpoint in the spawned inference worker",
+    "Sequential multi-call and equal-reward behavior",
+    "Parent deadlines, interrupted stages and live owned Docker worker removal"
+  ],
+  "target_model_acceptance": {
+    "weights_downloaded_or_loaded": false,
+    "genuine_development_episode": "not_run",
+    "held_out_baseline": "not_run",
+    "forward_backward_feasibility": "not_run",
+    "genuine_informative_update": "not_run",
+    "matched_held_out_comparison": "not_run",
+    "runtime_certified": false
+  }
+}

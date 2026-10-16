@@ -1,6 +1,6 @@
 # Minimal coding-agent RL lab
 
-The project provides a stateful coding environment and a Phase 2 CPU Transformers rollout/evaluation path. Read a file, apply a patch, run visible tests, freeze the changes, and obtain an independent binary correctness reward. Each attempt starts from an immutable tiny repository. The base install and scripted lessons require no model weights or inference packages. Training remains a later phase.
+The project provides a stateful coding environment, CPU Transformers evaluation, and an optional native TRL training path. Read a file, apply a patch, run visible tests, freeze the changes, and obtain an independent binary correctness reward. Each attempt starts from an immutable tiny repository. The base install and scripted lessons require no model weights or inference packages. Native integration is tested with fixture models; target-model training acceptance is recorded separately.
 
 ## Setup with uv
 
@@ -99,6 +99,8 @@ See [Phase 2 status](docs/PHASE_2_STATUS.md) for executed checks, CPU measuremen
 | `models.py`, `inference_worker.py` | Lazy tokenizer and persistent, cancellable CPU inference process |
 | `protocol.py`, `rollout.py` | Strict Qwen3.5 protocol, public conversation, dispatcher and budgets |
 | `evaluate.py`, `probe.py` | Held-out scheduling/metrics and ungraded compatibility diagnostic |
+| `trl_env.py`, `trainer.py` | Four-tool native adapter, complete-group/tensor admission, TRL updates and evidence |
+| `training_worker.py`, `checkpoints.py` | Supervised ownership, atomic full/LoRA artifacts and content identity |
 
 The public tools are `list_files`, `read_file`, `apply_patch`, and `run_tests`. Only existing allowed source files can be edited. Patches cannot add/delete/rename files or change protected tests. The final submission is reconstructed from actual source bytes, not from the agent's claim or a supplied Git diff.
 
@@ -106,8 +108,25 @@ Private grading uses a small authored JSON-case assertion controller, rather tha
 
 Infrastructure failures raise a distinct exception and produce no reward. Wrong results, submitted exceptions, resource violations, and malformed worker values produce 0.0 under healthy infrastructure. A frozen correct artifact earns 1.0 even if a limit ended the episode; termination and correctness remain separate fields.
 
+## Native CPU training
+
+The optional profile preserves the CPU inference pins and adds TRL, Datasets,
+Accelerate and, for LoRA, PEFT:
+
+```bash
+uv sync --locked --extra train-lora
+uv run --extra train-lora coding-rl train --config configs/train-cpu.yaml --probe
+```
+
+Prepare the pinned tokenizer first using the download command above. `--probe`
+checks the installed API, tool schemas, native parser/template and resolved batch
+layout without loading weights or updating a policy. A real `train` run additionally
+requires the Docker development episode and matched held-out baseline specified in
+[the Phase 3 run guide](docs/PHASE_3_STATUS.md). That guide covers full/LoRA modes,
+resource admission, checkpoint evaluation, and the remaining real-model gates.
+
 ## Next phases
 
-Stage B's CPU rollout/evaluation implementation is present; its measured acceptance status is recorded separately. Stage C adds a verified native TRL `environment_factory` adapter and genuine GRPO updates. Stage D optionally adds custom harnesses and CPU vLLM evaluation. No training commands are advertised in this release.
+Stage B's CPU rollout/evaluation and Stage C's native training implementation are present. Their measured acceptance status is recorded separately in [Phase 2](docs/PHASE_2_STATUS.md) and [Phase 3](docs/PHASE_3_STATUS.md). Genuine target-model training and its held-out comparison remain acceptance work. Stage D optionally adds custom harnesses and CPU vLLM evaluation.
 
 See [the design index](docs/README.md), [mental model](docs/ARCHITECTURE.md), and [implementation plan](docs/06_STEP_BY_STEP_IMPLEMENTATION.md). Docker unavailable, missing worker image, or unsupported hard limits fail clearly; fix that infrastructure or explicitly use the authored-fixture local lesson.

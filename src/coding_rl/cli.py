@@ -1,4 +1,4 @@
-"""Scripted lessons and real CPU rollout/evaluation, using validated configuration."""
+"""Scripted lessons, CPU inference/evaluation, and supervised native training."""
 
 import argparse
 import json
@@ -35,15 +35,25 @@ def _print_event(event: dict) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Coding-agent environment lessons and CPU model rollouts"
+        description="Coding-agent environment, CPU evaluation, and native TRL training"
     )
     commands = parser.add_subparsers(dest="command", required=True)
-    for name in ("env-demo", "env-inspect", "smoke", "rollout", "eval", "model-probe"):
+    for name in ("env-demo", "env-inspect", "smoke", "rollout", "eval", "model-probe", "train"):
         command = commands.add_parser(name)
         command.add_argument("--config", type=Path)
         command.add_argument("--sandbox", choices=["docker", "trusted_local"])
-        if name not in {"eval", "model-probe"}:
+        if name not in {"eval", "model-probe", "train"}:
             command.add_argument("--task", default="zero-timeout")
+        if name == "train":
+            command.add_argument(
+                "--probe",
+                action="store_true",
+                help="Probe native API/tokenizer without model weights or updates",
+            )
+        if name == "eval":
+            command.add_argument(
+                "--baseline", type=Path, help="Require a matching before/after evaluation profile"
+            )
     args = parser.parse_args()
     environment = None
     backend = None
@@ -52,6 +62,30 @@ def main() -> int:
         logging.basicConfig(level=config.logging.level, format="%(levelname)s %(message)s")
         if args.sandbox:
             config = replace(config, sandbox=replace(config.sandbox, kind=args.sandbox))
+        if args.command == "train":
+            from coding_rl.training_worker import train
+
+            result = train(config, probe_only=args.probe)
+            print(
+                json.dumps(
+                    {
+                        key: result.get(key)
+                        for key in (
+                            "status",
+                            "directory",
+                            "error",
+                            "parent_error",
+                            "peak_process_tree_rss_bytes",
+                        )
+                    },
+                    indent=2,
+                )
+            )
+            return (
+                130
+                if result["status"] == "cancelled"
+                else (0 if result["status"] in {"verified_update", "probe_only"} else 2)
+            )
         if args.command == "model-probe":
             from coding_rl.probe import model_probe
 
@@ -78,7 +112,8 @@ def main() -> int:
                 )
             from coding_rl.evaluate import evaluate
 
-            result = evaluate(environment, backend)
+            baseline = json.loads(args.baseline.read_text()) if args.baseline else None
+            result = evaluate(environment, backend, baseline=baseline)
             print(json.dumps(result["metrics"], indent=2))
             print(f"[report] {config.evaluation.report_path}")
             if result["metrics"]["finish_reasons"].get("cancelled"):

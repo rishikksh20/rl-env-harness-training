@@ -12,6 +12,14 @@ dependencies = ["PyYAML>=6.0.2,<7", "pytest==8.4.2"]
 
 [project.optional-dependencies]
 rollout = ["torch==2.14.1", "transformers==5.19.0", "huggingface-hub==2.2.0"]
+train-cpu = [
+  "coding-rl-lab[rollout]",
+  "trl==1.16.0",
+  "datasets==5.1.0",
+  "accelerate==1.15.0",
+  "psutil==7.2.2",
+]
+train-lora = ["coding-rl-lab[train-cpu]", "peft==0.21.2"]
 
 [tool.uv.sources]
 torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'", extra = "rollout" }]
@@ -33,7 +41,10 @@ packages = ["src/coding_rl"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"
-markers = ["docker: real isolated execution (enable with CODING_RL_DOCKER_TESTS=1)"]
+markers = [
+  "docker: real isolated execution (enable with CODING_RL_DOCKER_TESTS=1)",
+  "native: installed native training API (enable with CODING_RL_NATIVE_TESTS=1)",
+]
 
 [tool.ruff]
 target-version = "py311"

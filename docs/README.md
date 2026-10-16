@@ -1,10 +1,10 @@
 # Minimal coding-agent RL lab: implementation drafts
 
-These documents turn [the build specification](../CODEX_AGENTIC_RL_ENV_SPEC.md) into a small, staged Python implementation plan. Stage A and the Phase 2 CPU rollout/evaluation implementation are present: see [the run guide](../README.md), [Stage A status](PHASE_A_STATUS.md), and [Phase 2 validation status](PHASE_2_STATUS.md). The original architecture drafts explain the design; training remains a future stage.
+These documents turn [the build specification](../CODEX_AGENTIC_RL_ENV_SPEC.md) into a small, staged Python implementation plan. The environment, CPU evaluation and optional native training implementations are present. See [the run guide](../README.md), [Stage A status](PHASE_A_STATUS.md), [Phase 2 validation](PHASE_2_STATUS.md), and [Phase 3 implementation/acceptance status](PHASE_3_STATUS.md). The original architecture drafts explain the design.
 
 The [Phase 1 evaluation](PHASE_1_EVALUATION.md) identified a cleanup/cache edge case, now fixed with a regression test. The [Phase 2 rollout design](PHASE_2_MODEL_ROLLOUT_DESIGN.md) remains the original design record; [Phase 2 status](PHASE_2_STATUS.md) distinguishes implemented behavior from executed model/Docker gates.
 
-The next implementation work is specified in [Phase 3: native TRL training](PHASE_3_NATIVE_TRAINING_DESIGN.md). First close the real Docker episode and declared pre-training baseline, then build the native adapter, complete-group/tensor admission, genuine update, checkpoint reload/evaluation, and separate full/LoRA proofs. [The step-by-step roadmap](06_STEP_BY_STEP_IMPLEMENTATION.md) lists this work in coding order. The new design changes documentation only; it adds no training command or dependency.
+The [Phase 3 design](PHASE_3_NATIVE_TRAINING_DESIGN.md) defines the native training acceptance gates. Its [implementation plan](PHASE_3_IMPLEMENTATION_PLAN.md) and [current status/run guide](PHASE_3_STATUS.md) describe the delivered code, installed TRL fixture tests, explicit native profile choices, and outstanding target-model development/baseline/update/evaluation evidence.
 
 The central idea is simple: a model uses tools to change a private copy of a tiny repository; independent executable tests judge the final changes; TRL uses rewards from several attempts at the same task to update the model.
 
@@ -12,6 +12,7 @@ The central idea is simple: a model uses tools to change a private copy of a tin
 
 | Document | Question it answers |
 |---|---|
+| [PHASE_3_STATUS.md](PHASE_3_STATUS.md) | How do native training, full/LoRA checkpoints and matched evaluation work, and which gates actually passed? |
 | [PHASE_2_STATUS.md](PHASE_2_STATUS.md) | What Phase 2 code exists, how do I run it, and which acceptance gates have actually run? |
 | [PHASE_3_NATIVE_TRAINING_DESIGN.md](PHASE_3_NATIVE_TRAINING_DESIGN.md) | What remains before native training, which files change next, and what proves an actual policy update? |
 | [PHASE_1_EVALUATION.md](PHASE_1_EVALUATION.md) | What did the current code and rerun tests establish, and what needs attention before a model is added? |
@@ -41,11 +42,11 @@ Start with the environment diagram and worked episode in `ARCHITECTURE.md`. Read
 | Optional backends | CPU vLLM and custom harness start as rollout/evaluation only |
 | Operations | Validated YAML, standard logging, local JSONL artifacts, and a small CLI |
 
-The official TRL documentation supports the planned native interface. The existing CPU profile has its own measured inference evidence; native TRL remains uninstalled/unverified in this project's recorded validation. See [environment support](ENVIRONMENT_SUPPORT.md) for the adapter contract and [Phase 3 gates](PHASE_3_NATIVE_TRAINING_DESIGN.md) for installed API, failure, tensor, and optimizer requirements.
+TRL 1.16.0 is locked and its installed native tool loop, loss tensors and optimizer hooks are tested with tiny fixture models. The target model retains its separate measured inference evidence; fixture tests do not certify target-model training. See [Phase 3 status](PHASE_3_STATUS.md) for the actual compatibility report and remaining gates.
 
 ## CLI status and outputs
 
-The executable is `coding-rl`. Each command accepts the same `--config` option. `env-demo`, `env-inspect`, and `smoke` use the lightweight base profile. `rollout`, `eval`, and the ungraded `model-probe` use the optional rollout extra and `configs/rollout-cpu.yaml`. `train` remains a future interface.
+The executable is `coding-rl`. Each command accepts `--config`. The scripted commands use the lightweight base profile; `rollout`, `eval`, and `model-probe` use the rollout extra. `train` uses an optional training extra and `configs/train-cpu.yaml`; `train --probe` checks API/tokenizer compatibility without weights. See the run guide for required baseline evidence before a training pilot.
 
 | Command | Purpose | Completion evidence |
 |---|---|---|
@@ -61,4 +62,4 @@ Runtime artifacts belong under `outputs/`, outside fixture repositories. The pla
 
 ## Evidence status
 
-Original source review date: **2026-10-14**. [Stage A status](PHASE_A_STATUS.md) records its original Docker evidence. The **2026-10-15** [Phase 2 status](PHASE_2_STATUS.md) records the CPU model forward/generation probes, controller tests, calibrated profile, and remaining Docker/model evaluation gates. The [Phase 3 design](PHASE_3_NATIVE_TRAINING_DESIGN.md) reviews current native documentation/source and defines future acceptance; it performs no model or training run. No optimizer step has been performed.
+Original source review date: **2026-10-14**. Historical Stage A/Phase 2 reports retain their original measurements. The **2026-10-16** [Phase 3 status](PHASE_3_STATUS.md) records installed native fixture optimizer/save/reload tests and real Docker cleanup checks. No target-model optimizer step or held-out before/after comparison has been performed.

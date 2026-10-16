@@ -1,0 +1,45 @@
+# Experimental native CPU FP32/LoRA profile. See docs/PHASE_3_STATUS.md.
+# Install --extra train-lora; use --extra train-cpu with mode: full.
+model:
+  name: Qwen/Qwen3.5-0.8B
+  revision: 2fc06364715b967f1860aea9cf38778875588b17
+  tokenizer_revision: 2fc06364715b967f1860aea9cf38778875588b17
+  cache_dir: outputs/model-cache
+  offline: true
+  threads: 4
+environment:
+  episode_seconds: 900
+rollout:
+  max_new_tokens: 256
+  episode_tokens: 768
+  context_tokens: 2048
+  observation_tokens: 256
+  generation_seconds: 300
+  do_sample: true
+  temperature: 0.7
+  top_p: 0.8
+evaluation:
+  split: eval
+  attempts_per_task: 4
+  report_path: outputs/baseline.json
+training:
+  mode: lora
+  output_dir: outputs/training
+  max_groups: 8
+  group_size: 4
+  completion_tokens: 768
+  context_tokens: 2048
+  observation_tokens: 256
+  tool_iterations: 6
+  memory_limit_mb: 16384
+  wall_seconds: 3600
+  learning_rate: 1.0e-6
+  temperature: 0.7
+  top_p: 0.8
+  lora_rank: 8
+  lora_alpha: 16
+  lora_targets: [q_proj, v_proj]
+  baseline_report: outputs/baseline.json
+  # Set to the completed development rollout's *-outcome.json before training.
+  development_outcome: null
+seed: 42

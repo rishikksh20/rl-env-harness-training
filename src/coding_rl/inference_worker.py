@@ -9,6 +9,68 @@ from multiprocessing.connection import Connection
 MAX_MESSAGE_BYTES = 8 * 1024 * 1024
 
 
+def load_policy(settings: dict, *, trainable: bool = False):
+    """Load weights in-process; local adapters always reconstruct the pinned base."""
+    import torch
+    from transformers import Qwen3_5ForCausalLM
+
+    from coding_rl.checkpoints import load_checkpoint, policy_identity
+    from coding_rl.config import ModelConfig
+
+    config = ModelConfig(
+        **{
+            k: v
+            for k, v in settings.items()
+            if k
+            not in {
+                "eos_token_id",
+                "pad_token_id",
+            }
+        }
+    )
+    policy_identity(config)  # Validate all local bytes again inside the loading process.
+    source = config.name
+    options = {
+        "revision": config.revision,
+        "cache_dir": config.cache_dir,
+        "local_files_only": config.offline,
+    }
+    if config.source == "full":
+        source = str(load_checkpoint(config.checkpoint).path)
+        options = {"local_files_only": True}
+    model, loading = Qwen3_5ForCausalLM.from_pretrained(
+        source,
+        **options,
+        trust_remote_code=False,
+        dtype=torch.float32,
+        output_loading_info=True,
+        token=False,
+    )
+    loading = {
+        key: sorted(value) if isinstance(value, set) else value for key, value in loading.items()
+    }
+    if loading.get("missing_keys") or loading.get("mismatched_keys") or loading.get("error_msgs"):
+        raise ValueError(f"Incomplete language weight loading: {loading}")
+    if any(
+        not any(part in key for part in ("visual.", "vision.", "mtp."))
+        for key in loading.get("unexpected_keys", [])
+    ):
+        raise ValueError(f"Unexplained checkpoint weights: {loading}")
+    if config.source == "lora":
+        from peft import PeftModel
+
+        model = PeftModel.from_pretrained(
+            model,
+            str(load_checkpoint(config.checkpoint).path),
+            is_trainable=trainable,
+            local_files_only=True,
+        )
+    model.to(config.device)
+    model.requires_grad_(trainable)
+    model.train(trainable)
+    return model, loading
+
+
 def send_record(connection: Connection, value: dict) -> None:
     data = json.dumps(value, allow_nan=False).encode()
     if len(data) > MAX_MESSAGE_BYTES:
@@ -27,36 +89,10 @@ def worker_main(connection: Connection, settings: dict) -> None:
     """Spawn entry point; heavy libraries stay behind this model-only boundary."""
     try:
         import torch
-        from transformers import Qwen3_5ForCausalLM
 
         torch.set_num_threads(settings["threads"])
         started = time.monotonic()
-        model, loading = Qwen3_5ForCausalLM.from_pretrained(
-            settings["name"],
-            revision=settings["revision"],
-            cache_dir=settings["cache_dir"],
-            local_files_only=settings["offline"],
-            trust_remote_code=False,
-            dtype=torch.float32,
-            output_loading_info=True,
-            token=False,
-        )
-        loading = {
-            key: sorted(value) if isinstance(value, set) else value
-            for key, value in loading.items()
-        }
-        # The text loader may discard vision/MTP weights. No required language
-        # parameters may be missing or randomly initialized.
-        missing = loading.get("missing_keys", [])
-        unexpected = loading.get("unexpected_keys", [])
-        if missing or loading.get("mismatched_keys") or loading.get("error_msgs"):
-            raise ValueError(f"Incomplete language weight loading: {loading}")
-        if any(
-            not any(part in key for part in ("visual.", "vision.", "mtp.")) for key in unexpected
-        ):
-            raise ValueError(f"Unexplained checkpoint weights: {unexpected}")
-        model.to("cpu").eval()
-        model.requires_grad_(False)
+        model, loading = load_policy(settings)
         model.generation_config.eos_token_id = settings["eos_token_id"]
         model.generation_config.pad_token_id = settings["pad_token_id"]
         load_seconds = time.monotonic() - started

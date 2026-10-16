@@ -1,4 +1,4 @@
-"""Ordered, public-safe JSONL events, separate from any future learning tensors."""
+"""Ordered public-safe JSONL events; native learning tensors have separate audit artifacts."""
 
 import json
 import logging
